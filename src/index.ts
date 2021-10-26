@@ -12,12 +12,15 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
+import * as core from '@actions/core';
+
 import sendReport from './utils/send-report';
 import gitChangedFiles from './utils/git-changed-files';
 import getBaseRef from './utils/get-base-ref';
-import * as core from '@actions/core';
+import { getUncoveredLines } from './coverage-report';
 
 import type { Message } from './utils/send-report';
+import type { CoverageReport } from './coverage-report';
 
 const parseWithVerboseError = (text: string) => {
     try {
@@ -31,34 +34,6 @@ const parseWithVerboseError = (text: string) => {
         throw err;
     }
 };
-
-type Range = {
-    start: { line: number; column: number };
-    end: { line: number; column: number };
-};
-
-type Statement = Range;
-
-type Fn = {
-    name: string;
-    decl: Range;
-    loc: Range;
-    line: number;
-};
-
-type FileCoverage = {
-    path: string;
-    statementMap: Record<number, Statement>;
-    fnMap: Record<number, Fn>;
-    branchMap: {}; // TODO
-    s: Record<number, number>; // <statement, coverage count>
-    f: Record<number, number>; // <fn, coverage count>
-    b: {}; // TODO:
-    _coverageSchema: string;
-    hash: string;
-};
-
-type CoverageReport = Record<string, FileCoverage>; // key == filename
 
 const runJest = (
     jestBin: string,
@@ -157,7 +132,12 @@ async function run() {
     const report: CoverageReport = JSON.parse(
         fs.readFileSync(reportPath, 'utf-8'),
     );
-    console.log(report);
+    core.info(JSON.stringify(report, null, 4));
+    const uncoveredLines = getUncoveredLines(report);
+    core.info("uncovered lines:");
+    for (const [path, lines] of Object.entries(uncoveredLines)) {
+        core.info(`${path}: ${lines.join(", ")}`);
+    }
 
     // if (data.success) {
     //     await sendReport('Jest', []);

@@ -67943,6 +67943,8 @@ var external_path_ = __nccwpck_require__(5622);
 var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 // EXTERNAL MODULE: external "child_process"
 var external_child_process_ = __nccwpck_require__(3129);
+// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
+var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(5438);
 // EXTERNAL MODULE: ./node_modules/chalk/source/index.js
@@ -68315,8 +68317,25 @@ const cannedGithubErrorMessage = () => {
 };
 /* harmony default export */ const get_base_ref = (getBaseRef);
 
-// EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
-var core = __nccwpck_require__(2186);
+;// CONCATENATED MODULE: ./src/coverage-report.ts
+const getUncoveredLines = (report) => {
+    const output = {};
+    for (const fileCoverage of Object.values(report)) {
+        const lines = [];
+        for (const [id, stmt] of Object.entries(fileCoverage.statementMap)) {
+            // @ts-expect-error: TypeScript thinks `id` is `any` for some reason
+            if (fileCoverage.s[id] === 0) {
+                if (!(fileCoverage.path in output)) {
+                    output[fileCoverage.path] = [];
+                }
+                // TODO: include all lines if there's a range
+                output[fileCoverage.path].push(stmt.start.line);
+            }
+        }
+    }
+    return output;
+};
+
 ;// CONCATENATED MODULE: ./src/index.ts
 /**
  * This action runs `jest` and reports any type errors it encounters.
@@ -68328,6 +68347,7 @@ var core = __nccwpck_require__(2186);
  * stdout) and under Github Actions (adding annotations to files in the GitHub
  * UI).
  */
+
 
 
 
@@ -68415,7 +68435,12 @@ async function run() {
     const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
     core.info(`reportPath = ${reportPath}`);
     const report = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
-    console.log(report);
+    core.info(JSON.stringify(report, null, 4));
+    const uncoveredLines = getUncoveredLines(report);
+    core.info("uncovered lines:");
+    for (const [path, lines] of Object.entries(uncoveredLines)) {
+        core.info(`${path}: ${lines.join(", ")}`);
+    }
     // if (data.success) {
     //     await sendReport('Jest', []);
     //     return;

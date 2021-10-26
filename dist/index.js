@@ -68437,14 +68437,14 @@ async function run() {
     const report = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
     // core.info(JSON.stringify(report, null, 4));
     const uncoveredLines = getUncoveredLines(report);
-    core.info("uncovered lines:");
+    core.info('uncovered lines:');
     for (const [path, lines] of Object.entries(uncoveredLines)) {
-        core.info(`${path}: ${lines.join(", ")}`);
+        core.info(`${path}: ${lines.join(', ')}`);
     }
     // TODO: exclude test files from this
-    console.log("determing added/changed lines");
+    console.log('determing added/changed lines');
     for (const file of jsFiles) {
-        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`);
+        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`, { encoding: 'utf-8' });
         console.log(diff);
     }
     // if (data.success) {

@@ -151,7 +151,9 @@ async function run() {
 
     core.info('Parsing json output from jest');
 
-    const report: CoverageReport = require('./coverage/coverage-final.json');
+    const reportPath = path.join(current, 'coverage/coverage-final.json');
+    core.info(`reportPath = ${reportPath}`);
+    const report: CoverageReport = require(reportPath);
     console.log(report);
 
     // if (data.success) {

@@ -107,9 +107,8 @@ const githubReport = async (
     token: string,
     messages: Message[],
 ) => {
-    /* flow-uncovered-block */
     const { GitHub, context } = require('@actions/github');
-    const { owner, repo } /*: {owner: string, repo: string}*/ = context.repo;
+    const { owner, repo } = context.repo as {owner: string, repo: string};
     const client = new GitHub(token, {});
     const headSha = context.payload.pull_request.head.sha;
     const check = await client.checks.create({

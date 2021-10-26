@@ -18,6 +18,7 @@ import sendReport from './utils/send-report';
 import gitChangedFiles from './utils/git-changed-files';
 import getBaseRef from './utils/get-base-ref';
 import { getUncoveredLines } from './coverage-report';
+import { getFileChanges } from './file-changes';
 
 import type { Message } from './utils/send-report';
 import type { CoverageReport } from './coverage-report';
@@ -142,12 +143,11 @@ async function run() {
     // TODO: exclude test files from this
     console.log('determing added/changed lines');
     for (const file of jsFiles) {
-        const diff = execSync(
-            `git difftool ${baseRef} -y -x "diff -C0" ${file}`,
-            { encoding: 'utf-8' },
-        );
-        console.log(diff);
+        const changes = getFileChanges(file, baseRef);
+        core.info(`changes for ${file}`);
+        core.info(JSON.stringify(changes, null, 4));
     }
+
     // if (data.success) {
     //     await sendReport('Jest', []);
     //     return;

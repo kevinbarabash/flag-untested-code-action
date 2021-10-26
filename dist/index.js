@@ -68336,6 +68336,36 @@ const getUncoveredLines = (report) => {
     return output;
 };
 
+;// CONCATENATED MODULE: ./src/file-changes.ts
+
+const getFileChanges = (filename, baseRef) => {
+    const changes = {
+        added: [],
+        modified: [],
+    };
+    const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${filename}`, { encoding: 'utf-8' });
+    // we skip the first section since that only contains the filename
+    const sections = diff.split('***************').slice(1);
+    const afterLineRegex = /^--- (\d+)(,(\d+))? ----$/;
+    for (const section of sections) {
+        const lines = section.split('\n');
+        const afterSeparatorIndex = lines.findIndex(line => afterLineRegex.test(line));
+        const match = lines[afterSeparatorIndex].match(afterLineRegex);
+        // @ts-expect-error: we know that this group exists
+        let index = match.groups[1];
+        const afterLines = lines.slice(afterSeparatorIndex);
+        for (const line of afterLines) {
+            if (line.startsWith('+ ')) {
+                changes.added.push(index++);
+            }
+            if (line.startsWith('! ')) {
+                changes.modified.push(index++);
+            }
+        }
+    }
+    return changes;
+};
+
 ;// CONCATENATED MODULE: ./src/index.ts
 /**
  * This action runs `jest` and reports any type errors it encounters.
@@ -68347,6 +68377,7 @@ const getUncoveredLines = (report) => {
  * stdout) and under Github Actions (adding annotations to files in the GitHub
  * UI).
  */
+
 
 
 
@@ -68444,8 +68475,9 @@ async function run() {
     // TODO: exclude test files from this
     console.log('determing added/changed lines');
     for (const file of jsFiles) {
-        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`, { encoding: 'utf-8' });
-        console.log(diff);
+        const changes = getFileChanges(file, baseRef);
+        core.info(`changes for ${file}`);
+        core.info(JSON.stringify(changes, null, 4));
     }
     // if (data.success) {
     //     await sendReport('Jest', []);

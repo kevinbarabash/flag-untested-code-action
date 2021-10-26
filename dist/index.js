@@ -67942,7 +67942,6 @@ var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 var external_child_process_ = __nccwpck_require__(3129);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(5438);
-var github_default = /*#__PURE__*/__nccwpck_require__.n(github);
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(5747);
 var external_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_fs_);
@@ -68035,10 +68034,10 @@ const removeWorkspace = (path) => {
  */
 const githubReport = async (title, token, messages) => {
     var _a;
-    const { owner, repo } = (github_default()).context.repo;
-    const octokit = github_default().getOctokit(token);
+    const { owner, repo } = github.context.repo;
+    const octokit = github.getOctokit(token);
     const client = octokit.rest;
-    const headSha = (_a = (github_default()).context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head.sha;
+    const headSha = (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head.sha;
     const check = await client.checks.create({
         owner,
         repo,

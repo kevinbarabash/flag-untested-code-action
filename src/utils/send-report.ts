@@ -11,7 +11,7 @@
 
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 
-import github from '@actions/github';
+import * as github from '@actions/github';
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';

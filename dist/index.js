@@ -67710,21 +67710,6 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 
 /***/ }),
 
-/***/ 875:
-/***/ ((module) => {
-
-function webpackEmptyContext(req) {
-	var e = new Error("Cannot find module '" + req + "'");
-	e.code = 'MODULE_NOT_FOUND';
-	throw e;
-}
-webpackEmptyContext.keys = () => ([]);
-webpackEmptyContext.resolve = webpackEmptyContext;
-webpackEmptyContext.id = 875;
-module.exports = webpackEmptyContext;
-
-/***/ }),
-
 /***/ 2357:
 /***/ ((module) => {
 
@@ -67950,6 +67935,9 @@ var __webpack_exports__ = {};
 // ESM COMPAT FLAG
 __nccwpck_require__.r(__webpack_exports__);
 
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(5747);
+var external_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_fs_);
 // EXTERNAL MODULE: external "path"
 var external_path_ = __nccwpck_require__(5622);
 var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
@@ -67957,9 +67945,6 @@ var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 var external_child_process_ = __nccwpck_require__(3129);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(5438);
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(5747);
-var external_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_fs_);
 // EXTERNAL MODULE: ./node_modules/chalk/source/index.js
 var source = __nccwpck_require__(8818);
 var source_default = /*#__PURE__*/__nccwpck_require__.n(source);
@@ -68349,6 +68334,7 @@ var core = __nccwpck_require__(2186);
 
 
 
+
 const parseWithVerboseError = (text) => {
     try {
         return JSON.parse(text);
@@ -68428,7 +68414,7 @@ async function run() {
     core.info('Parsing json output from jest');
     const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
     core.info(`reportPath = ${reportPath}`);
-    const report = __nccwpck_require__(875)(reportPath);
+    const report = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
     console.log(report);
     // if (data.success) {
     //     await sendReport('Jest', []);

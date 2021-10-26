@@ -9,6 +9,7 @@
  * UI).
  */
 
+import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import sendReport from './utils/send-report';
@@ -153,7 +154,9 @@ async function run() {
 
     const reportPath = path.join(current, 'coverage/coverage-final.json');
     core.info(`reportPath = ${reportPath}`);
-    const report: CoverageReport = require(reportPath);
+    const report: CoverageReport = JSON.parse(
+        fs.readFileSync(reportPath, 'utf-8'),
+    );
     console.log(report);
 
     // if (data.success) {

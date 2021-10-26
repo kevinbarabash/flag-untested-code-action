@@ -10,6 +10,8 @@
  */
 
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
+
+import github from '@actions/github';
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
@@ -107,10 +109,10 @@ const githubReport = async (
     token: string,
     messages: Message[],
 ) => {
-    const { GitHub, context } = require('@actions/github');
-    const { owner, repo } = context.repo as {owner: string, repo: string};
-    const client = new GitHub(token, {});
-    const headSha = context.payload.pull_request.head.sha;
+    const { owner, repo } = github.context.repo;
+    const octokit = github.getOctokit(token);
+    const client = octokit.rest;
+    const headSha = github.context.payload.pull_request?.head.sha;
     const check = await client.checks.create({
         owner,
         repo,

@@ -35,9 +35,7 @@ export const getFileChanges = (
         core.info(`separator = ${separator}`);
         const match = separator.match(afterLineRegex);
         // @ts-expect-error: we know that this group exists
-        core.info(match);
-        // @ts-expect-error: we know that this group exists
-        let index: number = match.groups[1];
+        let index: number = match[1];
     
         const afterLines = lines.slice(afterSeparatorIndex);
         for (const line of afterLines) {

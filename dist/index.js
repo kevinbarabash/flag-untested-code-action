@@ -68357,9 +68357,7 @@ const getFileChanges = (filename, baseRef) => {
         core.info(`separator = ${separator}`);
         const match = separator.match(afterLineRegex);
         // @ts-expect-error: we know that this group exists
-        core.info(match);
-        // @ts-expect-error: we know that this group exists
-        let index = match.groups[1];
+        let index = match[1];
         const afterLines = lines.slice(afterSeparatorIndex);
         for (const line of afterLines) {
             if (line.startsWith('+ ')) {

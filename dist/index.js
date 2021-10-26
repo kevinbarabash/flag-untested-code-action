@@ -68396,12 +68396,9 @@ async function run() {
         core.info('No JavaScript files changed');
         return;
     }
-    const jestOpts = [
-        '--json',
-        '--testLocationInResults',
-        '--passWithNoTests',
-    ];
+    core.info('changed files: \n' + jsFiles.join('\n'));
     // TODO: find related test files using relativeFiles
+    const jestOpts = ['--coverage'];
     try {
         await core.group('Running jest', async () => {
             await runJest(jestBin, jestOpts, { cwd: workingDirectory });

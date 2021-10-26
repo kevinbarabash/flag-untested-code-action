@@ -140,7 +140,7 @@ const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(5278);
 const os = __importStar(__nccwpck_require__(2087));
 const path = __importStar(__nccwpck_require__(5622));
-const oidc_utils_1 = __nccwpck_require__(573);
+const oidc_utils_1 = __nccwpck_require__(8041);
 /**
  * The code to exit an action
  */
@@ -468,7 +468,7 @@ exports.issueCommand = issueCommand;
 
 /***/ }),
 
-/***/ 573:
+/***/ 8041:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -9024,7 +9024,7 @@ var hljs = __nccwpck_require__(2414);
 hljs.registerLanguage('1c', __nccwpck_require__(2337));
 hljs.registerLanguage('abnf', __nccwpck_require__(5789));
 hljs.registerLanguage('accesslog', __nccwpck_require__(4109));
-hljs.registerLanguage('actionscript', __nccwpck_require__(8041));
+hljs.registerLanguage('actionscript', __nccwpck_require__(115));
 hljs.registerLanguage('ada', __nccwpck_require__(7194));
 hljs.registerLanguage('angelscript', __nccwpck_require__(3662));
 hljs.registerLanguage('apache', __nccwpck_require__(6011));
@@ -9989,7 +9989,7 @@ module.exports = accesslog;
 
 /***/ }),
 
-/***/ 8041:
+/***/ 115:
 /***/ ((module) => {
 
 /**
@@ -67969,6 +67969,7 @@ const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 
 
 
+
 /**
  * Report out these error messages locally, by printing to stderr.
  */
@@ -68047,6 +68048,7 @@ const githubReport = async (title, token, messages) => {
         name: title,
         head_sha: headSha,
     });
+    core.info(`messages count = ${messages.length}`);
     if (!messages.length) {
         await client.checks.update({
             owner,
@@ -68062,7 +68064,6 @@ const githubReport = async (title, token, messages) => {
             },
         });
     }
-    /* end flow-uncovered-block */
     const annotations = messages.map((message) => ({
         path: removeWorkspace(message.path),
         start_line: message.start.line,
@@ -68085,7 +68086,6 @@ const githubReport = async (title, token, messages) => {
     while (annotations.length > 0) {
         // take the first 50, removing them from the list
         const subset = annotations.splice(0, 50);
-        /* flow-uncovered-block */
         await client.checks.update({
             owner,
             repo,
@@ -68099,7 +68099,6 @@ const githubReport = async (title, token, messages) => {
                 annotations: subset,
             },
         });
-        /* end flow-uncovered-block */
     }
 };
 const makeReport = (title, messages) => {
@@ -68446,7 +68445,6 @@ async function run() {
     }
     const current = external_path_default().resolve(workingDirectory);
     const files = await git_changed_files(baseRef, workingDirectory);
-    const relativeFiles = files.map((absPath) => external_path_default().relative(current, absPath));
     const validExt = ['.js', '.jsx', '.mjs', '.ts', '.tsx'];
     const jsFiles = files.filter((file) => validExt.includes(external_path_default().extname(file)));
     if (!jsFiles.length) {
@@ -68471,7 +68469,7 @@ async function run() {
     const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
     const report = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
     const uncoveredLines = getUncoveredLines(report);
-    const annotations = [];
+    const messages = [];
     // TODO: exclude test files from this
     console.log('determing added/changed lines');
     for (const file of jsFiles) {
@@ -68481,44 +68479,24 @@ async function run() {
         core.info(`uncovered lines for ${file}`);
         const lines = uncoveredLines[file];
         core.info(lines.join(', '));
+        lines.forEach((line) => {
+            core.info(`changes.added.includes(line) ||
+            changes.modified.includes(line) = ${changes.added.includes(line) || changes.modified.includes(line)}`);
+            if (changes.added.includes(line) ||
+                changes.modified.includes(line)) {
+                console.log(`reporting missing test for for line ${line}`);
+                messages.push({
+                    path: external_path_default().relative(current, file),
+                    // TODO: reuse location data from the coverage report
+                    start: { line, column: 1 },
+                    end: { line, column: 1 },
+                    annotationLevel: 'failure',
+                    message: 'This line was added/modified but has no test',
+                });
+            }
+        });
     }
-    // if (data.success) {
-    //     await sendReport('Jest', []);
-    //     return;
-    // }
-    // for (const testResult of data.testResults) {
-    //     if (testResult.status !== 'failed') {
-    //         continue;
-    //     }
-    //     let hadLocation = false;
-    //     const path = testResult.name;
-    //     for (const assertionResult of testResult.assertionResults) {
-    //         if (
-    //             assertionResult.status === 'failed' &&
-    //             assertionResult.location
-    //         ) {
-    //             hadLocation = true;
-    //             annotations.push({
-    //                 path,
-    //                 start: assertionResult.location,
-    //                 end: assertionResult.location,
-    //                 annotationLevel: 'failure',
-    //                 message: assertionResult.failureMessages.join('\n\n'),
-    //             });
-    //         }
-    //     }
-    //     // All test failures have no location data
-    //     if (!hadLocation) {
-    //         annotations.push({
-    //             path,
-    //             start: { line: 1, column: 0 },
-    //             end: { line: 1, column: 0 },
-    //             annotationLevel: 'failure',
-    //             message: testResult.message,
-    //         });
-    //     }
-    // }
-    await send_report(`Flag Untested Code`, annotations);
+    await send_report(`Flag Untested Code`, messages);
 }
 run().catch((err) => {
     console.error(err);

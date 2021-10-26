@@ -11,6 +11,7 @@
 
 const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 
+import * as core from '@actions/core';
 import * as github from '@actions/github';
 import fs from 'fs';
 import path from 'path';
@@ -120,6 +121,8 @@ const githubReport = async (
         name: title,
         head_sha: headSha,
     });
+    core.info(`messages count = ${messages.length}`);
+
     if (!messages.length) {
         await client.checks.update({
             owner,
@@ -135,7 +138,6 @@ const githubReport = async (
             },
         });
     }
-    /* end flow-uncovered-block */
 
     const annotations = messages.map((message) => ({
         path: removeWorkspace(message.path),
@@ -159,7 +161,6 @@ const githubReport = async (
     while (annotations.length > 0) {
         // take the first 50, removing them from the list
         const subset = annotations.splice(0, 50);
-        /* flow-uncovered-block */
         await client.checks.update({
             owner,
             repo,
@@ -173,14 +174,13 @@ const githubReport = async (
                 annotations: subset,
             },
         });
-        /* end flow-uncovered-block */
     }
 };
 
 const makeReport = (
     title: string,
     messages: Message[],
-) /*: Promise<void> */ => {
+): Promise<void> => {
     if (GITHUB_TOKEN) {
         return githubReport(title, GITHUB_TOKEN, messages);
     } else {

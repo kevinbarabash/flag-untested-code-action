@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { spawn, execSync } from 'child_process';
+import { spawn } from 'child_process';
 import * as core from '@actions/core';
 
 import sendReport from './utils/send-report';
@@ -131,7 +131,7 @@ async function run() {
     );
     const uncoveredLines = getUncoveredLines(report);
 
-    const annotations: Message[] = [];
+    const messages: Message[] = [];
 
     // TODO: exclude test files from this
     console.log('determing added/changed lines');
@@ -144,15 +144,20 @@ async function run() {
         core.info(lines.join(', '));
 
         lines.forEach((line: number) => {
+            core.info(`changes.added.includes(line) ||
+            changes.modified.includes(line) = ${
+                changes.added.includes(line) || changes.modified.includes(line)
+            }`);
             if (
                 changes.added.includes(line) ||
                 changes.modified.includes(line)
             ) {
-                annotations.push({
+                console.log(`reporting missing test for for line ${line}`);
+                messages.push({
                     path: path.relative(current, file),
                     // TODO: reuse location data from the coverage report
-                    start: {line, column: 1},
-                    end: {line, column: 1},
+                    start: { line, column: 1 },
+                    end: { line, column: 1 },
                     annotationLevel: 'failure',
                     message: 'This line was added/modified but has no test',
                 });
@@ -160,7 +165,7 @@ async function run() {
         });
     }
 
-    await sendReport(`Flag Untested Code`, annotations);
+    await sendReport(`Flag Untested Code`, messages);
 }
 
 run().catch((err) => {

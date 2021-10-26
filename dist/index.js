@@ -68444,7 +68444,7 @@ async function run() {
     // TODO: exclude test files from this
     console.log("determing added/changed lines");
     for (const file of jsFiles) {
-        const diff = (0,external_child_process_.execSync)(`git difftool main..test-branch-1 -y -x "diff -C0" ${file}`);
+        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`);
         console.log(diff);
     }
     // if (data.success) {

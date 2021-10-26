@@ -143,7 +143,7 @@ async function run() {
     console.log("determing added/changed lines");
     for (const file of jsFiles) {
         const diff = execSync(
-            `git difftool main..test-branch-1 -y -x "diff -C0" ${file}`
+            `git difftool ${baseRef} -y -x "diff -C0" ${file}`
         );
         console.log(diff);
     }

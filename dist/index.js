@@ -67694,6 +67694,14 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 588:
+/***/ ((module) => {
+
+module.exports = eval("require")("./coverage/coverage-final.json");
+
+
+/***/ }),
+
 /***/ 2877:
 /***/ ((module) => {
 
@@ -68411,45 +68419,45 @@ async function run() {
         process.exit(1);
     }
     core.info('Parsing json output from jest');
-    const data = {
-        testResults: [],
-        success: false,
-    };
-    if (data.success) {
-        await send_report('Jest', []);
-        return;
-    }
+    const report = __nccwpck_require__(588);
+    console.log(report);
+    // if (data.success) {
+    //     await sendReport('Jest', []);
+    //     return;
+    // }
     const annotations = [];
-    for (const testResult of data.testResults) {
-        if (testResult.status !== 'failed') {
-            continue;
-        }
-        let hadLocation = false;
-        const path = testResult.name;
-        for (const assertionResult of testResult.assertionResults) {
-            if (assertionResult.status === 'failed' &&
-                assertionResult.location) {
-                hadLocation = true;
-                annotations.push({
-                    path,
-                    start: assertionResult.location,
-                    end: assertionResult.location,
-                    annotationLevel: 'failure',
-                    message: assertionResult.failureMessages.join('\n\n'),
-                });
-            }
-        }
-        // All test failures have no location data
-        if (!hadLocation) {
-            annotations.push({
-                path,
-                start: { line: 1, column: 0 },
-                end: { line: 1, column: 0 },
-                annotationLevel: 'failure',
-                message: testResult.message,
-            });
-        }
-    }
+    // for (const testResult of data.testResults) {
+    //     if (testResult.status !== 'failed') {
+    //         continue;
+    //     }
+    //     let hadLocation = false;
+    //     const path = testResult.name;
+    //     for (const assertionResult of testResult.assertionResults) {
+    //         if (
+    //             assertionResult.status === 'failed' &&
+    //             assertionResult.location
+    //         ) {
+    //             hadLocation = true;
+    //             annotations.push({
+    //                 path,
+    //                 start: assertionResult.location,
+    //                 end: assertionResult.location,
+    //                 annotationLevel: 'failure',
+    //                 message: assertionResult.failureMessages.join('\n\n'),
+    //             });
+    //         }
+    //     }
+    //     // All test failures have no location data
+    //     if (!hadLocation) {
+    //         annotations.push({
+    //             path,
+    //             start: { line: 1, column: 0 },
+    //             end: { line: 1, column: 0 },
+    //             annotationLevel: 'failure',
+    //             message: testResult.message,
+    //         });
+    //     }
+    // }
     await send_report(`Flag Untested Code`, annotations);
 }
 run().catch((err) => {

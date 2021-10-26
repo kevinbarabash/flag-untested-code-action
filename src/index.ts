@@ -31,6 +31,34 @@ const parseWithVerboseError = (text: string) => {
     }
 };
 
+type Range = {
+    start: { line: number; column: number };
+    end: { line: number; column: number };
+};
+
+type Statement = Range;
+
+type Fn = {
+    name: string;
+    decl: Range;
+    loc: Range;
+    line: number;
+};
+
+type FileCoverage = {
+    path: string;
+    statementMap: Record<number, Statement>;
+    fnMap: Record<number, Fn>;
+    branchMap: {}; // TODO
+    s: Record<number, number>; // <statement, coverage count>
+    f: Record<number, number>; // <fn, coverage count>
+    b: {}; // TODO:
+    _coverageSchema: string;
+    hash: string;
+};
+
+type CoverageReport = Record<string, FileCoverage>; // key == filename
+
 const runJest = (
     jestBin: string,
     jestOpts: string[],
@@ -123,61 +151,48 @@ async function run() {
 
     core.info('Parsing json output from jest');
 
-    const data: {
-        testResults: {
-            name: string;
-            assertionResults: {
-                status: string;
-                location: { line: number; column: number };
-                failureMessages: string[];
-            }[];
-            message: string;
-            status: string;
-        }[];
-        success: boolean;
-    } = {
-        testResults: [],
-        success: false,
-    };
+    const report: CoverageReport = require('./coverage/coverage-final.json');
+    console.log(report);
 
-    if (data.success) {
-        await sendReport('Jest', []);
-        return;
-    }
+    // if (data.success) {
+    //     await sendReport('Jest', []);
+    //     return;
+    // }
 
     const annotations: Message[] = [];
-    for (const testResult of data.testResults) {
-        if (testResult.status !== 'failed') {
-            continue;
-        }
-        let hadLocation = false;
-        const path = testResult.name;
-        for (const assertionResult of testResult.assertionResults) {
-            if (
-                assertionResult.status === 'failed' &&
-                assertionResult.location
-            ) {
-                hadLocation = true;
-                annotations.push({
-                    path,
-                    start: assertionResult.location,
-                    end: assertionResult.location,
-                    annotationLevel: 'failure',
-                    message: assertionResult.failureMessages.join('\n\n'),
-                });
-            }
-        }
-        // All test failures have no location data
-        if (!hadLocation) {
-            annotations.push({
-                path,
-                start: { line: 1, column: 0 },
-                end: { line: 1, column: 0 },
-                annotationLevel: 'failure',
-                message: testResult.message,
-            });
-        }
-    }
+    // for (const testResult of data.testResults) {
+    //     if (testResult.status !== 'failed') {
+    //         continue;
+    //     }
+    //     let hadLocation = false;
+    //     const path = testResult.name;
+    //     for (const assertionResult of testResult.assertionResults) {
+    //         if (
+    //             assertionResult.status === 'failed' &&
+    //             assertionResult.location
+    //         ) {
+    //             hadLocation = true;
+    //             annotations.push({
+    //                 path,
+    //                 start: assertionResult.location,
+    //                 end: assertionResult.location,
+    //                 annotationLevel: 'failure',
+    //                 message: assertionResult.failureMessages.join('\n\n'),
+    //             });
+    //         }
+    //     }
+    //     // All test failures have no location data
+    //     if (!hadLocation) {
+    //         annotations.push({
+    //             path,
+    //             start: { line: 1, column: 0 },
+    //             end: { line: 1, column: 0 },
+    //             annotationLevel: 'failure',
+    //             message: testResult.message,
+    //         });
+    //     }
+    // }
+
     await sendReport(`Flag Untested Code`, annotations);
 }
 

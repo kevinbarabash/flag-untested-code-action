@@ -21,6 +21,6 @@
     "minimatch": "^3.0.4"
   },
   "scripts": {
-    "build": "ncc build"
+    "build": "ncc build src/index.ts"
   }
 }

@@ -68469,26 +68469,23 @@ async function run() {
     }
     core.info('Parsing json output from jest');
     const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
-    // core.info(`reportPath = ${reportPath}`);
     const report = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
-    // core.info(JSON.stringify(report, null, 4));
     const uncoveredLines = getUncoveredLines(report);
-    core.info('uncovered lines:');
-    for (const [path, lines] of Object.entries(uncoveredLines)) {
-        core.info(`${path}: ${lines.join(', ')}`);
-    }
+    const annotations = [];
     // TODO: exclude test files from this
     console.log('determing added/changed lines');
     for (const file of jsFiles) {
         const changes = getFileChanges(file, baseRef);
         core.info(`changes for ${file}`);
         core.info(JSON.stringify(changes, null, 4));
+        core.info(`uncovered lines for ${file}`);
+        const lines = uncoveredLines[file];
+        core.info(lines.join(', '));
     }
     // if (data.success) {
     //     await sendReport('Jest', []);
     //     return;
     // }
-    const annotations = [];
     // for (const testResult of data.testResults) {
     //     if (testResult.status !== 'failed') {
     //         continue;

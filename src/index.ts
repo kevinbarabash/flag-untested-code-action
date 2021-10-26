@@ -97,9 +97,6 @@ async function run() {
 
     const current = path.resolve(workingDirectory);
     const files = await gitChangedFiles(baseRef, workingDirectory);
-    const relativeFiles: string[] = files.map((absPath) =>
-        path.relative(current, absPath),
-    );
 
     const validExt = ['.js', '.jsx', '.mjs', '.ts', '.tsx'];
     const jsFiles = files.filter((file) =>
@@ -129,16 +126,12 @@ async function run() {
     core.info('Parsing json output from jest');
 
     const reportPath = path.join(current, 'coverage/coverage-final.json');
-    // core.info(`reportPath = ${reportPath}`);
     const report: CoverageReport = JSON.parse(
         fs.readFileSync(reportPath, 'utf-8'),
     );
-    // core.info(JSON.stringify(report, null, 4));
     const uncoveredLines = getUncoveredLines(report);
-    core.info('uncovered lines:');
-    for (const [path, lines] of Object.entries(uncoveredLines)) {
-        core.info(`${path}: ${lines.join(', ')}`);
-    }
+
+    const annotations: Message[] = [];
 
     // TODO: exclude test files from this
     console.log('determing added/changed lines');
@@ -146,46 +139,26 @@ async function run() {
         const changes = getFileChanges(file, baseRef);
         core.info(`changes for ${file}`);
         core.info(JSON.stringify(changes, null, 4));
+        core.info(`uncovered lines for ${file}`);
+        const lines: number[] = uncoveredLines[file];
+        core.info(lines.join(', '));
+
+        lines.forEach((line: number) => {
+            if (
+                changes.added.includes(line) ||
+                changes.modified.includes(line)
+            ) {
+                annotations.push({
+                    path: path.relative(current, file),
+                    // TODO: reuse location data from the coverage report
+                    start: {line, column: 1},
+                    end: {line, column: 1},
+                    annotationLevel: 'failure',
+                    message: 'This line was added/modified but has no test',
+                });
+            }
+        });
     }
-
-    // if (data.success) {
-    //     await sendReport('Jest', []);
-    //     return;
-    // }
-
-    const annotations: Message[] = [];
-    // for (const testResult of data.testResults) {
-    //     if (testResult.status !== 'failed') {
-    //         continue;
-    //     }
-    //     let hadLocation = false;
-    //     const path = testResult.name;
-    //     for (const assertionResult of testResult.assertionResults) {
-    //         if (
-    //             assertionResult.status === 'failed' &&
-    //             assertionResult.location
-    //         ) {
-    //             hadLocation = true;
-    //             annotations.push({
-    //                 path,
-    //                 start: assertionResult.location,
-    //                 end: assertionResult.location,
-    //                 annotationLevel: 'failure',
-    //                 message: assertionResult.failureMessages.join('\n\n'),
-    //             });
-    //         }
-    //     }
-    //     // All test failures have no location data
-    //     if (!hadLocation) {
-    //         annotations.push({
-    //             path,
-    //             start: { line: 1, column: 0 },
-    //             end: { line: 1, column: 0 },
-    //             annotationLevel: 'failure',
-    //             message: testResult.message,
-    //         });
-    //     }
-    // }
 
     await sendReport(`Flag Untested Code`, annotations);
 }

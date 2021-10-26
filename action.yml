@@ -2,7 +2,7 @@ name: 'Flag Untested Code'
 description: "Flag lines that aren't covered by a corresponding jest test"
 runs:
   using: 'node12'
-  main: 'dist/flag-untested-code.js'
+  main: 'dist/index.js'
 inputs:
   jest-bin:
     required: true

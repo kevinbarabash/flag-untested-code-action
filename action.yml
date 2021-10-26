@@ -1,0 +1,15 @@
+name: 'Flag Untested Code'
+description: "Flag lines that aren't covered by a corresponding jest test"
+runs:
+  using: 'node12'
+  main: 'dist/flag-untested-code.js'
+inputs:
+  jest-bin:
+    required: true
+    description: 'Path to your jest library, probably node_modules/.bin/jest'
+  custom-working-directory:
+    required: false
+    description: 'Path to your working directory, uses `.` if not provided'
+branding:
+  icon: check-circle
+  color: red

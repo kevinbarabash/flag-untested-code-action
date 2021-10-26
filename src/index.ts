@@ -9,7 +9,6 @@
  * UI).
  */
 
-import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import sendReport from './utils/send-report';
@@ -106,13 +105,10 @@ async function run() {
         return;
     }
 
-    const jestOpts = [
-        '--json',
-        '--testLocationInResults',
-        '--passWithNoTests',
-    ];
-
+    core.info('changed files: \n' + jsFiles.join('\n'));
     // TODO: find related test files using relativeFiles
+
+    const jestOpts = ['--coverage'];
 
     try {
         await core.group('Running jest', async () => {

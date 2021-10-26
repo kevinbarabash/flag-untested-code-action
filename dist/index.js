@@ -68338,6 +68338,7 @@ const getUncoveredLines = (report) => {
 
 ;// CONCATENATED MODULE: ./src/file-changes.ts
 
+
 const getFileChanges = (filename, baseRef) => {
     const changes = {
         added: [],
@@ -68348,8 +68349,10 @@ const getFileChanges = (filename, baseRef) => {
     const sections = diff.split('***************').slice(1);
     const afterLineRegex = /^--- (\d+)(,(\d+))? ----$/;
     for (const section of sections) {
+        core.info(`section = ${section}`);
         const lines = section.split('\n');
         const afterSeparatorIndex = lines.findIndex(line => afterLineRegex.test(line));
+        core.info(`afterSeparatorIndex = ${afterSeparatorIndex}`);
         const match = lines[afterSeparatorIndex].match(afterLineRegex);
         // @ts-expect-error: we know that this group exists
         let index = match.groups[1];

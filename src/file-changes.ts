@@ -1,3 +1,5 @@
+import * as core from '@actions/core';
+
 import { spawn, execSync } from 'child_process';
 
 type FileChanges = {
@@ -25,8 +27,10 @@ export const getFileChanges = (
     const afterLineRegex = /^--- (\d+)(,(\d+))? ----$/;
 
     for (const section of sections) {
+        core.info(`section = ${section}`);
         const lines = section.split('\n');
         const afterSeparatorIndex = lines.findIndex(line => afterLineRegex.test(line));
+        core.info(`afterSeparatorIndex = ${afterSeparatorIndex}`);
         const match = lines[afterSeparatorIndex].match(afterLineRegex);
         // @ts-expect-error: we know that this group exists
         let index: number = match.groups[1];

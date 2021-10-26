@@ -68353,7 +68353,11 @@ const getFileChanges = (filename, baseRef) => {
         const lines = section.split('\n');
         const afterSeparatorIndex = lines.findIndex(line => afterLineRegex.test(line));
         core.info(`afterSeparatorIndex = ${afterSeparatorIndex}`);
-        const match = lines[afterSeparatorIndex].match(afterLineRegex);
+        const separator = lines[afterSeparatorIndex];
+        core.info(`separator = ${separator}`);
+        const match = separator.match(afterLineRegex);
+        // @ts-expect-error: we know that this group exists
+        core.info(match);
         // @ts-expect-error: we know that this group exists
         let index = match.groups[1];
         const afterLines = lines.slice(afterSeparatorIndex);

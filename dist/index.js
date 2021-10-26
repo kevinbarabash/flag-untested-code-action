@@ -68318,7 +68318,6 @@ const cannedGithubErrorMessage = () => {
 
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(2186);
-var core_default = /*#__PURE__*/__nccwpck_require__.n(core);
 ;// CONCATENATED MODULE: ./src/index.ts
 /**
  * This action runs `jest` and reports any type errors it encounters.
@@ -68349,15 +68348,15 @@ const parseWithVerboseError = (text) => {
 };
 const runJest = (jestBin, jestOpts, spawnOpts) => {
     return new Promise((resolve, reject) => {
-        core_default().info(`running ${jestBin} ${jestOpts.join(' ')}`);
+        core.info(`running ${jestBin} ${jestOpts.join(' ')}`);
         const jest = (0,external_child_process_.spawn)(jestBin, jestOpts, spawnOpts);
         jest.stdout.on('data', (data) => {
-            core_default().info(data.toString());
+            core.info(data.toString());
         });
         jest.stderr.on('data', (data) => {
             // jest uses stderr for all its output unfortunately
             // https://github.com/facebook/jest/issues/5064
-            core_default().info(data.toString());
+            core.info(data.toString());
         });
         jest.on('close', (code) => {
             // Jest will exit with a non-zero exit code if any test fails.
@@ -68379,13 +68378,13 @@ async function run() {
     const jestBin = process.env['INPUT_JEST-BIN'];
     const workingDirectory = process.env['INPUT_CUSTOM-WORKING-DIRECTORY'] || '.';
     if (!jestBin) {
-        core_default().info(`You need to have jest installed, and pass in the the jest binary via the variable 'jest-bin'.`);
+        core.info(`You need to have jest installed, and pass in the the jest binary via the variable 'jest-bin'.`);
         process.exit(1);
         return;
     }
     const baseRef = get_base_ref();
     if (!baseRef) {
-        core_default().info(`No base ref given`);
+        core.info(`No base ref given`);
         process.exit(1);
         return;
     }
@@ -68395,7 +68394,7 @@ async function run() {
     const validExt = ['.js', '.jsx', '.mjs', '.ts', '.tsx'];
     const jsFiles = files.filter((file) => validExt.includes(external_path_default().extname(file)));
     if (!jsFiles.length) {
-        core_default().info('No JavaScript files changed');
+        core.info('No JavaScript files changed');
         return;
     }
     const jestOpts = [
@@ -68405,17 +68404,17 @@ async function run() {
     ];
     // TODO: find related test files using relativeFiles
     try {
-        await core_default().group('Running jest', async () => {
+        await core.group('Running jest', async () => {
             await runJest(jestBin, jestOpts, { cwd: workingDirectory });
         });
     }
     catch (err) {
-        core_default().error('An error occurred trying to run jest');
+        core.error('An error occurred trying to run jest');
         // @ts-expect-error: err is typed as mixed
-        core_default().error(err);
+        core.error(err);
         process.exit(1);
     }
-    core_default().info('Parsing json output from jest');
+    core.info('Parsing json output from jest');
     const data = {
         testResults: [],
         success: false,

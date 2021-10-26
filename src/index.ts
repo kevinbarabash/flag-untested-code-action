@@ -15,7 +15,7 @@ import { spawn } from 'child_process';
 import sendReport from './utils/send-report';
 import gitChangedFiles from './utils/git-changed-files';
 import getBaseRef from './utils/get-base-ref';
-import core from '@actions/core';
+import * as core from '@actions/core';
 
 import type { Message } from './utils/send-report';
 

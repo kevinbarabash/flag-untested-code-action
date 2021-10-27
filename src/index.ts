@@ -243,7 +243,7 @@ async function run() {
         });
     }
 
-    await sendReport(`Flag Untested Code`, messages);
+    await sendReport(`Flag Untested Code`, messages, deltaReport);
 }
 
 run().catch((err) => {

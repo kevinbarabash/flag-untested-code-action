@@ -67975,7 +67975,7 @@ const { GITHUB_TOKEN, GITHUB_WORKSPACE } = process.env;
 /**
  * Report out these error messages locally, by printing to stderr.
  */
-const localReport = async (title, messages) => {
+const localReport = async (title, messages, deltaReport) => {
     console.log();
     console.log(source_default().yellow(`[[ ${title} ]]`));
     console.log();
@@ -68037,7 +68037,7 @@ const removeWorkspace = (path) => {
  * Report out these errors to github, by making a new "check" and uploading
  * the messages as annotations.
  */
-const githubReport = async (title, token, messages) => {
+const githubReport = async (title, token, messages, deltaReport) => {
     var _a;
     const { owner, repo } = github.context.repo;
     const octokit = github.getOctokit(token);
@@ -68083,6 +68083,14 @@ const githubReport = async (title, token, messages) => {
             warningCount += 1;
         }
     });
+    const summaryLines = [
+        `${errorCount} error(s), ${warningCount} warning(s) found`,
+        `# Markdown test`,
+    ];
+    for (const [file, delta] of Object.entries(deltaReport)) {
+        const { percent, coveredStatements, uncoveredStatements } = delta;
+        summaryLines.push(`${file}: percent ${(percent * 100).toFixed(2)}, covered: ${coveredStatements}, uncovered: ${uncoveredStatements}`);
+    }
     // The github checks api has a limit of 50 annotations per call
     // (https://developer.github.com/v3/checks/runs/#output-object)
     while (annotations.length > 0) {
@@ -68097,18 +68105,18 @@ const githubReport = async (title, token, messages) => {
             conclusion: errorCount > 0 ? 'failure' : 'success',
             output: {
                 title: title,
-                summary: `${errorCount} error(s), ${warningCount} warning(s) found`,
+                summary: summaryLines.join('\n'),
                 annotations: subset,
             },
         });
     }
 };
-const makeReport = (title, messages) => {
+const makeReport = (title, messages, deltaReport) => {
     if (GITHUB_TOKEN) {
-        return githubReport(title, GITHUB_TOKEN, messages);
+        return githubReport(title, GITHUB_TOKEN, messages, deltaReport);
     }
     else {
-        return localReport(title, messages);
+        return localReport(title, messages, deltaReport);
     }
 };
 /* harmony default export */ const send_report = (makeReport);
@@ -68593,7 +68601,7 @@ async function run() {
             }
         });
     }
-    await send_report(`Flag Untested Code`, messages);
+    await send_report(`Flag Untested Code`, messages, deltaReport);
 }
 run().catch((err) => {
     console.error(err);

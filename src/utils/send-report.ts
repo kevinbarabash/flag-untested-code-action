@@ -16,7 +16,9 @@ import * as github from '@actions/github';
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
-import {highlight} from 'cli-highlight';
+import { highlight } from 'cli-highlight';
+
+import type { DeltaReport } from '../delta-report';
 
 export type Message = {
     message: string;
@@ -29,7 +31,11 @@ export type Message = {
 /**
  * Report out these error messages locally, by printing to stderr.
  */
-const localReport = async (title: string, messages: Message[]) => {
+const localReport = async (
+    title: string,
+    messages: Message[],
+    deltaReport: DeltaReport,
+) => {
     console.log();
     console.log(chalk.yellow(`[[ ${title} ]]`));
     console.log();
@@ -57,9 +63,7 @@ const localReport = async (title: string, messages: Message[]) => {
         }
         console.error(
             ':error:',
-            chalk.cyan(
-                `${message.path}:${message.startLine}`,
-            ),
+            chalk.cyan(`${message.path}:${message.startLine}`),
         );
         console.error(message.message);
         console.error(
@@ -109,6 +113,7 @@ const githubReport = async (
     title: string,
     token: string,
     messages: Message[],
+    deltaReport: DeltaReport,
 ) => {
     const { owner, repo } = github.context.repo;
     const octokit = github.getOctokit(token);
@@ -156,6 +161,20 @@ const githubReport = async (
         }
     });
 
+    const summaryLines = [
+        `${errorCount} error(s), ${warningCount} warning(s) found`,
+        `# Markdown test`,
+    ];
+
+    for (const [file, delta] of Object.entries(deltaReport)) {
+        const { percent, coveredStatements, uncoveredStatements } = delta;
+        summaryLines.push(
+            `${file}: percent ${(percent * 100).toFixed(
+                2,
+            )}, covered: ${coveredStatements}, uncovered: ${uncoveredStatements}`,
+        );
+    }
+
     // The github checks api has a limit of 50 annotations per call
     // (https://developer.github.com/v3/checks/runs/#output-object)
     while (annotations.length > 0) {
@@ -170,7 +189,7 @@ const githubReport = async (
             conclusion: errorCount > 0 ? 'failure' : 'success',
             output: {
                 title: title,
-                summary: `${errorCount} error(s), ${warningCount} warning(s) found`,
+                summary: summaryLines.join('\n'),
                 annotations: subset,
             },
         });
@@ -180,11 +199,12 @@ const githubReport = async (
 const makeReport = (
     title: string,
     messages: Message[],
+    deltaReport: DeltaReport,
 ): Promise<void> => {
     if (GITHUB_TOKEN) {
-        return githubReport(title, GITHUB_TOKEN, messages);
+        return githubReport(title, GITHUB_TOKEN, messages, deltaReport);
     } else {
-        return localReport(title, messages);
+        return localReport(title, messages, deltaReport);
     }
 };
 

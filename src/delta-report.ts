@@ -1,6 +1,6 @@
 import type { CoverageReport } from './coverage-report';
 
-type DeltaReport = Record<
+export type DeltaReport = Record<
     string,
     {
         percent: number;

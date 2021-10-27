@@ -50,8 +50,10 @@ const runJest = (
     });
 };
 
-const LINE_ADDED = 'This line was added but has no test';
-const LINE_MODIFIED = 'This line was modified but has no test';
+const LINE_ADDED = 'This line was added but is untested';
+const LINES_ADDED = 'These lines were added but are untested';
+const LINE_MODIFIED = 'This line was modified but is untested';
+const LINES_MODIFIED = 'These lines were modified but are untested';
 
 async function run() {
     const jestBin = process.env['INPUT_JEST-BIN'];
@@ -188,6 +190,16 @@ async function run() {
                 }
             }
         });
+
+        messages.forEach(message => {
+            if (message.endLine - message.startLine > 0) {
+                if (message.message === LINE_ADDED) {
+                    message.message = LINES_ADDED;
+                } else if (message.message === LINE_MODIFIED) {
+                    message.message = LINES_MODIFIED;
+                }
+            }
+        })
     }
 
     await sendReport(`Flag Untested Code`, messages);

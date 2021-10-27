@@ -68409,10 +68409,10 @@ const runJest = (jestBin, jestOpts, spawnOpts) => {
         });
     });
 };
-const LINE_ADDED = 'This line was added but is untested';
-const LINES_ADDED = 'These lines were added but are untested';
-const LINE_MODIFIED = 'This line was modified but is untested';
-const LINES_MODIFIED = 'These lines were modified but are untested';
+const LINE_ADDED = 'This line was added but is untested.';
+const LINES_ADDED = 'These lines were added but are untested.';
+const LINE_MODIFIED = 'This line was modified but is untested.';
+const LINES_MODIFIED = 'These lines were modified but are untested.';
 async function run() {
     const jestBin = process.env['INPUT_JEST-BIN'];
     const workingDirectory = process.env['INPUT_CUSTOM-WORKING-DIRECTORY'] || '.';

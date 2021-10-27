@@ -170,8 +170,9 @@ const githubReport = async (
 
     for (const [file, delta] of Object.entries(deltaReport)) {
         const { percent, covered, uncovered } = delta;
+        const relFile = path.relative(path.resolve('.'), file);
         summaryLines.push(
-            `|${file}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`,
+            `|${relFile}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`,
         );
     }
 

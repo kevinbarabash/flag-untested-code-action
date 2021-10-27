@@ -68091,7 +68091,8 @@ const githubReport = async (title, token, messages, deltaReport) => {
     ];
     for (const [file, delta] of Object.entries(deltaReport)) {
         const { percent, covered, uncovered } = delta;
-        summaryLines.push(`|${file}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`);
+        const relFile = external_path_default().relative(external_path_default().resolve('.'), file);
+        summaryLines.push(`|${relFile}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`);
     }
     // The github checks api has a limit of 50 annotations per call
     // (https://developer.github.com/v3/checks/runs/#output-object)

@@ -67991,21 +67991,21 @@ const localReport = async (title, messages) => {
     const byFile = {};
     messages.forEach((message) => {
         const lines = getFile(message.path);
-        const lineStart = Math.max(message.start.line - 3, 0);
+        const lineStart = Math.max(message.startLine - 3, 0);
         const indexStart = lineStart + 1;
-        const context = lines.slice(lineStart, message.end.line + 2);
+        const context = lines.slice(lineStart, message.endLine + 2);
         if (!byFile[message.path]) {
             byFile[message.path] = 1;
         }
         else {
             byFile[message.path] += 1;
         }
-        console.error(':error:', source_default().cyan(`${message.path}:${message.start.line}:${message.start.column}`));
+        console.error(':error:', source_default().cyan(`${message.path}:${message.startLine}`));
         console.error(message.message);
         console.error('\n' +
             context
-                .map((line, i) => `${source_default().dim(indexStart + i + ':')}${indexStart + i >= message.start.line &&
-                indexStart + i <= message.end.line
+                .map((line, i) => `${source_default().dim(indexStart + i + ':')}${indexStart + i >= message.startLine &&
+                indexStart + i <= message.endLine
                 ? source_default().red('>')
                 : ' '} ${line}`)
                 .join('\n') +
@@ -68066,8 +68066,8 @@ const githubReport = async (title, token, messages) => {
     }
     const annotations = messages.map((message) => ({
         path: removeWorkspace(message.path),
-        start_line: message.start.line,
-        end_line: message.end.line,
+        start_line: message.startLine,
+        end_line: message.endLine,
         annotation_level: message.annotationLevel,
         message: message.message,
     }));
@@ -68390,17 +68390,6 @@ const getFileChanges = (filename, baseRef) => {
 
 
 
-const parseWithVerboseError = (text) => {
-    try {
-        return JSON.parse(text);
-    }
-    catch (err) {
-        console.error('>> ❌ Invalid Json! ❌ <<');
-        console.error('Jest probably had an error, or something is misconfigured');
-        console.error(text);
-        throw err;
-    }
-};
 const runJest = (jestBin, jestOpts, spawnOpts) => {
     return new Promise((resolve, reject) => {
         core.info(`running ${jestBin} ${jestOpts.join(' ')}`);
@@ -68419,15 +68408,6 @@ const runJest = (jestBin, jestOpts, spawnOpts) => {
             resolve();
         });
     });
-};
-const parseList = (text) => {
-    if (!text || !text.length) {
-        return [];
-    }
-    return (text
-        .split(',')
-        // Trim intervening whitespace
-        .map((item) => item.trim()));
 };
 async function run() {
     const jestBin = process.env['INPUT_JEST-BIN'];
@@ -68453,10 +68433,10 @@ async function run() {
     }
     core.info('changed files: \n' + jsFiles.join('\n'));
     const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
-    const jsImplFiles = jsFiles.filter(file => !nonImplRegex.test(file));
-    const jsTestFiles = jsImplFiles.flatMap(file => {
+    const jsImplFiles = jsFiles.filter((file) => !nonImplRegex.test(file));
+    const jsTestFiles = jsImplFiles.flatMap((file) => {
         const dirname = external_path_default().dirname(file);
-        const basename = external_path_default().basename(file).replace(/\.jsx?$/, "");
+        const basename = external_path_default().basename(file).replace(/\.jsx?$/, '');
         const filenames = [
             external_path_default().join(dirname, `${basename}_test.js`),
             external_path_default().join(dirname, `${basename}_test.jsx`),
@@ -68492,28 +68472,29 @@ async function run() {
     const report = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
     const uncoveredLines = getUncoveredLines(report);
     const messages = [];
-    // TODO: exclude test files from this
-    console.log('determing added/changed lines');
-    for (const file of jsFiles) {
+    const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||
+        'warning');
+    console.log('determing added/changed lines in implementation files');
+    for (const file of jsImplFiles) {
         const changes = getFileChanges(file, baseRef);
         core.info(`changes for ${file}`);
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${file}`);
         const lines = uncoveredLines[file];
         core.info(lines.join(', '));
+        // TODO: collapse adjacent lines
         lines.forEach((line) => {
-            core.info(`changes.added.includes(line) ||
-            changes.modified.includes(line) = ${changes.added.includes(line) || changes.modified.includes(line)}`);
             if (changes.added.includes(line) ||
                 changes.modified.includes(line)) {
-                console.log(`reporting missing test for for line ${line}`);
+                const message = changes.added.includes(line)
+                    ? 'This line was added but has no test'
+                    : 'This line was modified but has no test';
                 messages.push({
                     path: external_path_default().relative(external_path_default().resolve('.'), file),
-                    // TODO: reuse location data from the coverage report
-                    start: { line, column: 1 },
-                    end: { line, column: 1 },
-                    annotationLevel: 'failure',
-                    message: 'This line was added/modified but has no test',
+                    startLine: line,
+                    endLine: line,
+                    annotationLevel,
+                    message,
                 });
             }
         });

@@ -20,8 +20,8 @@ import {highlight} from 'cli-highlight';
 
 export type Message = {
     message: string;
-    start: { line: number; column: number };
-    end: { line: number; column: number };
+    startLine: number;
+    endLine: number;
     annotationLevel: 'failure' | 'warning';
     path: string;
 };
@@ -47,9 +47,9 @@ const localReport = async (title: string, messages: Message[]) => {
     const byFile: Record<string, number> = {};
     messages.forEach((message) => {
         const lines = getFile(message.path);
-        const lineStart = Math.max(message.start.line - 3, 0);
+        const lineStart = Math.max(message.startLine - 3, 0);
         const indexStart = lineStart + 1;
-        const context = lines.slice(lineStart, message.end.line + 2);
+        const context = lines.slice(lineStart, message.endLine + 2);
         if (!byFile[message.path]) {
             byFile[message.path] = 1;
         } else {
@@ -58,7 +58,7 @@ const localReport = async (title: string, messages: Message[]) => {
         console.error(
             ':error:',
             chalk.cyan(
-                `${message.path}:${message.start.line}:${message.start.column}`,
+                `${message.path}:${message.startLine}`,
             ),
         );
         console.error(message.message);
@@ -68,8 +68,8 @@ const localReport = async (title: string, messages: Message[]) => {
                     .map(
                         (line, i) =>
                             `${chalk.dim(indexStart + i + ':')}${
-                                indexStart + i >= message.start.line &&
-                                indexStart + i <= message.end.line
+                                indexStart + i >= message.startLine &&
+                                indexStart + i <= message.endLine
                                     ? chalk.red('>')
                                     : ' '
                             } ${line}`,
@@ -141,8 +141,8 @@ const githubReport = async (
 
     const annotations = messages.map((message) => ({
         path: removeWorkspace(message.path),
-        start_line: message.start.line,
-        end_line: message.end.line,
+        start_line: message.startLine,
+        end_line: message.endLine,
         annotation_level: message.annotationLevel,
         message: message.message,
     }));

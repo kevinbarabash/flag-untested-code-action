@@ -10,6 +10,9 @@ inputs:
   custom-working-directory:
     required: false
     description: 'Path to your working directory, uses `.` if not provided'
+  annotation-level:
+    required: false
+    description: "'warning' or 'failure', defaults to 'warning'"
 branding:
   icon: check-circle
   color: red

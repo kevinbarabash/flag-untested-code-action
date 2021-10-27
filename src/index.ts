@@ -23,19 +23,6 @@ import { getFileChanges } from './file-changes';
 import type { Message } from './utils/send-report';
 import type { CoverageReport } from './coverage-report';
 
-const parseWithVerboseError = (text: string) => {
-    try {
-        return JSON.parse(text);
-    } catch (err) {
-        console.error('>> ❌ Invalid Json! ❌ <<');
-        console.error(
-            'Jest probably had an error, or something is misconfigured',
-        );
-        console.error(text);
-        throw err;
-    }
-};
-
 const runJest = (
     jestBin: string,
     jestOpts: string[],
@@ -61,18 +48,6 @@ const runJest = (
             resolve();
         });
     });
-};
-
-const parseList = (text?: string): string[] => {
-    if (!text || !text.length) {
-        return [];
-    }
-    return (
-        text
-            .split(',')
-            // Trim intervening whitespace
-            .map((item) => item.trim())
-    );
 };
 
 async function run() {
@@ -109,10 +84,10 @@ async function run() {
 
     core.info('changed files: \n' + jsFiles.join('\n'));
     const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
-    const jsImplFiles = jsFiles.filter(file => !nonImplRegex.test(file));
-    const jsTestFiles: string[] = jsImplFiles.flatMap(file => {
+    const jsImplFiles = jsFiles.filter((file) => !nonImplRegex.test(file));
+    const jsTestFiles: string[] = jsImplFiles.flatMap((file) => {
         const dirname = path.dirname(file);
-        const basename = path.basename(file).replace(/\.jsx?$/, "");
+        const basename = path.basename(file).replace(/\.jsx?$/, '');
 
         const filenames = [
             path.join(dirname, `${basename}_test.js`),
@@ -157,10 +132,11 @@ async function run() {
     const uncoveredLines = getUncoveredLines(report);
 
     const messages: Message[] = [];
+    const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||
+        'warning') as 'warning' | 'failure';
 
-    // TODO: exclude test files from this
-    console.log('determing added/changed lines');
-    for (const file of jsFiles) {
+    console.log('determing added/changed lines in implementation files');
+    for (const file of jsImplFiles) {
         const changes = getFileChanges(file, baseRef);
         core.info(`changes for ${file}`);
         core.info(JSON.stringify(changes, null, 4));
@@ -168,23 +144,21 @@ async function run() {
         const lines: number[] = uncoveredLines[file];
         core.info(lines.join(', '));
 
+        // TODO: collapse adjacent lines
         lines.forEach((line: number) => {
-            core.info(`changes.added.includes(line) ||
-            changes.modified.includes(line) = ${
-                changes.added.includes(line) || changes.modified.includes(line)
-            }`);
             if (
                 changes.added.includes(line) ||
                 changes.modified.includes(line)
             ) {
-                console.log(`reporting missing test for for line ${line}`);
+                const message = changes.added.includes(line)
+                    ? 'This line was added but has no test'
+                    : 'This line was modified but has no test';
                 messages.push({
                     path: path.relative(path.resolve('.'), file),
-                    // TODO: reuse location data from the coverage report
-                    start: { line, column: 1 },
-                    end: { line, column: 1 },
-                    annotationLevel: 'failure',
-                    message: 'This line was added/modified but has no test',
+                    startLine: line,
+                    endLine: line,
+                    annotationLevel,
+                    message,
                 });
             }
         });

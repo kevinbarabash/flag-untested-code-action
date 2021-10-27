@@ -11,7 +11,8 @@
 
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
+import {promisify} from 'util';
 import * as core from '@actions/core';
 
 import sendReport from './utils/send-report';
@@ -22,6 +23,8 @@ import { getFileChanges } from './file-changes';
 
 import type { Message } from './utils/send-report';
 import type { CoverageReport } from './coverage-report';
+
+const execProm = promisify(exec);
 
 const runJest = (
     jestBin: string,
@@ -115,10 +118,16 @@ async function run() {
     });
     core.info('matching tests: \n' + jsTestFiles.join('\n'));
 
+    const testFileRegex = /(_test|\.test)\.jsx?$/;
+    const changedTestFiles = jsFiles.filter((file) => testFileRegex.test(file));
+    // running tests twice to get coverage deltas
+    // - a test file was changed (we can determine this by running git diff-tool on the file in question)
+    // - a test file was deleted (should only happen when the implementation file was deleted)
+
     const jestOpts = ['--coverage', ...jsTestFiles];
 
     try {
-        await core.group('Running jest', async () => {
+        await core.group('Running jest on HEAD', async () => {
             await runJest(jestBin, jestOpts, { cwd: workingDirectory });
         });
     } catch (err) {
@@ -131,11 +140,33 @@ async function run() {
     core.info('Parsing json output from jest');
 
     const reportPath = path.join(current, 'coverage/coverage-final.json');
-    const report: CoverageReport = JSON.parse(
+    const headReport: CoverageReport = JSON.parse(
         fs.readFileSync(reportPath, 'utf-8'),
     );
-    const uncoveredLines = getUncoveredLines(report);
 
+    await execProm(`git checkout ${baseRef}`);
+
+    try {
+        await core.group(`Running jest on ${baseRef}` , async () => {
+            await runJest(jestBin, jestOpts, { cwd: workingDirectory });
+        });
+    } catch (err) {
+        core.error('An error occurred trying to run jest');
+        // @ts-expect-error: err is typed as mixed
+        core.error(err);
+        process.exit(1);
+    }
+
+    const baseReport: CoverageReport = JSON.parse(
+        fs.readFileSync(reportPath, 'utf-8'),
+    );
+
+    console.log('baseReport');
+    console.log(JSON.stringify(baseReport, null, 4));
+    console.log('headReport');
+    console.log(JSON.stringify(headReport, null, 4));
+
+    const uncoveredLines = getUncoveredLines(headReport);
     const messages: Message[] = [];
     const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||
         'warning') as 'warning' | 'failure';

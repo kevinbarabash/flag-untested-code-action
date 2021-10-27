@@ -67943,6 +67943,8 @@ var external_path_ = __nccwpck_require__(5622);
 var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 // EXTERNAL MODULE: external "child_process"
 var external_child_process_ = __nccwpck_require__(3129);
+// EXTERNAL MODULE: external "util"
+var external_util_ = __nccwpck_require__(1669);
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
@@ -68114,8 +68116,6 @@ const makeReport = (title, messages) => {
 // EXTERNAL MODULE: ./node_modules/minimatch/minimatch.js
 var minimatch = __nccwpck_require__(3973);
 var minimatch_default = /*#__PURE__*/__nccwpck_require__.n(minimatch);
-// EXTERNAL MODULE: external "util"
-var external_util_ = __nccwpck_require__(1669);
 ;// CONCATENATED MODULE: ./src/utils/git-changed-files.ts
 
 
@@ -68390,6 +68390,8 @@ const getFileChanges = (filename, baseRef) => {
 
 
 
+
+const src_execProm = (0,external_util_.promisify)(external_child_process_.exec);
 const runJest = (jestBin, jestOpts, spawnOpts) => {
     return new Promise((resolve, reject) => {
         core.info(`running ${jestBin} ${jestOpts.join(' ')}`);
@@ -68459,9 +68461,14 @@ async function run() {
         return [];
     });
     core.info('matching tests: \n' + jsTestFiles.join('\n'));
+    const testFileRegex = /(_test|\.test)\.jsx?$/;
+    const changedTestFiles = jsFiles.filter((file) => testFileRegex.test(file));
+    // running tests twice to get coverage deltas
+    // - a test file was changed (we can determine this by running git diff-tool on the file in question)
+    // - a test file was deleted (should only happen when the implementation file was deleted)
     const jestOpts = ['--coverage', ...jsTestFiles];
     try {
-        await core.group('Running jest', async () => {
+        await core.group('Running jest on HEAD', async () => {
             await runJest(jestBin, jestOpts, { cwd: workingDirectory });
         });
     }
@@ -68473,8 +68480,25 @@ async function run() {
     }
     core.info('Parsing json output from jest');
     const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
-    const report = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
-    const uncoveredLines = getUncoveredLines(report);
+    const headReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
+    await src_execProm(`git checkout ${baseRef}`);
+    try {
+        await core.group(`Running jest on ${baseRef}`, async () => {
+            await runJest(jestBin, jestOpts, { cwd: workingDirectory });
+        });
+    }
+    catch (err) {
+        core.error('An error occurred trying to run jest');
+        // @ts-expect-error: err is typed as mixed
+        core.error(err);
+        process.exit(1);
+    }
+    const baseReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
+    console.log('baseReport');
+    console.log(JSON.stringify(baseReport, null, 4));
+    console.log('headReport');
+    console.log(JSON.stringify(headReport, null, 4));
+    const uncoveredLines = getUncoveredLines(headReport);
     const messages = [];
     const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||
         'warning');

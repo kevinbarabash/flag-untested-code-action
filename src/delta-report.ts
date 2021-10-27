@@ -4,8 +4,8 @@ export type DeltaReport = Record<
     string,
     {
         percent: number;
-        coveredStatements: number;
-        uncoveredStatements: number;
+        covered: number;
+        uncovered: number;
     }
 >;
 
@@ -45,9 +45,9 @@ export const compareReports = (
 
             report[filename] = {
                 percent: headPercent - basePercent,
-                coveredStatements:
+                covered:
                     headCoveredStatementCount - baseCoveredStatementCount,
-                uncoveredStatements:
+                uncovered:
                     headUncoveredStatementCount - baseUncoveredStatementCount,
             };
         }

@@ -163,15 +163,15 @@ const githubReport = async (
 
     const summaryLines = [
         `${errorCount} error(s), ${warningCount} warning(s) found`,
-        `# Markdown test`,
+        `## Coverage deltas`,
+        `|file|% change|lines covered|lines uncovered|`,
+        `|-|-|-|-|`,
     ];
 
     for (const [file, delta] of Object.entries(deltaReport)) {
-        const { percent, coveredStatements, uncoveredStatements } = delta;
+        const { percent, covered, uncovered } = delta;
         summaryLines.push(
-            `${file}: percent ${(percent * 100).toFixed(
-                2,
-            )}, covered: ${coveredStatements}, uncovered: ${uncoveredStatements}`,
+            `|${file}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`,
         );
     }
 

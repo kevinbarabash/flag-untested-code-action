@@ -68085,11 +68085,13 @@ const githubReport = async (title, token, messages, deltaReport) => {
     });
     const summaryLines = [
         `${errorCount} error(s), ${warningCount} warning(s) found`,
-        `# Markdown test`,
+        `## Coverage deltas`,
+        `|file|% change|lines covered|lines uncovered|`,
+        `|-|-|-|-|`,
     ];
     for (const [file, delta] of Object.entries(deltaReport)) {
-        const { percent, coveredStatements, uncoveredStatements } = delta;
-        summaryLines.push(`${file}: percent ${(percent * 100).toFixed(2)}, covered: ${coveredStatements}, uncovered: ${uncoveredStatements}`);
+        const { percent, covered, uncovered } = delta;
+        summaryLines.push(`|${file}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`);
     }
     // The github checks api has a limit of 50 annotations per call
     // (https://developer.github.com/v3/checks/runs/#output-object)
@@ -68398,8 +68400,8 @@ const compareReports = (baseReport, headReport) => {
             const headUncoveredStatementCount = headStatementCount - headCoveredStatementCount;
             report[filename] = {
                 percent: headPercent - basePercent,
-                coveredStatements: headCoveredStatementCount - baseCoveredStatementCount,
-                uncoveredStatements: headUncoveredStatementCount - baseUncoveredStatementCount,
+                covered: headCoveredStatementCount - baseCoveredStatementCount,
+                uncovered: headUncoveredStatementCount - baseUncoveredStatementCount,
             };
         }
     }

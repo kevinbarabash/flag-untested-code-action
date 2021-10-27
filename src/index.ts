@@ -108,9 +108,34 @@ async function run() {
     }
 
     core.info('changed files: \n' + jsFiles.join('\n'));
-    // TODO: find related test files using relativeFiles
+    const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
+    const jsImplFiles = jsFiles.filter(file => !nonImplRegex.test(file));
+    const jsTestFiles: string[] = jsImplFiles.flatMap(file => {
+        const dirname = path.dirname(file);
+        const basename = path.basename(file).replace(/\.jsx?$/, "");
 
-    const jestOpts = ['--coverage'];
+        const filenames = [
+            path.join(dirname, `${basename}_test.js`),
+            path.join(dirname, `${basename}_test.jsx`),
+            path.join(dirname, `${basename}.test.js`),
+            path.join(dirname, `${basename}.test.jsx`),
+            path.join(dirname, '__tests__', `${basename}_test.js`),
+            path.join(dirname, '__tests__', `${basename}_test.jsx`),
+            path.join(dirname, '__tests__', `${basename}.test.js`),
+            path.join(dirname, '__tests__', `${basename}.test.jsx`),
+        ];
+
+        for (const filename of filenames) {
+            if (fs.existsSync(filename)) {
+                return [filename];
+            }
+        }
+
+        return [];
+    });
+    core.info('matching tests: \n' + jsTestFiles.join('\n'));
+
+    const jestOpts = ['--coverage', ...jsTestFiles];
 
     try {
         await core.group('Running jest', async () => {

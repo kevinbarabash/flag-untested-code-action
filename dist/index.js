@@ -68452,8 +68452,30 @@ async function run() {
         return;
     }
     core.info('changed files: \n' + jsFiles.join('\n'));
-    // TODO: find related test files using relativeFiles
-    const jestOpts = ['--coverage'];
+    const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
+    const jsImplFiles = jsFiles.filter(file => !nonImplRegex.test(file));
+    const jsTestFiles = jsImplFiles.flatMap(file => {
+        const dirname = external_path_default().dirname(file);
+        const basename = external_path_default().basename(file).replace(/\.jsx?$/, "");
+        const filenames = [
+            external_path_default().join(dirname, `${basename}_test.js`),
+            external_path_default().join(dirname, `${basename}_test.jsx`),
+            external_path_default().join(dirname, `${basename}.test.js`),
+            external_path_default().join(dirname, `${basename}.test.jsx`),
+            external_path_default().join(dirname, '__tests__', `${basename}_test.js`),
+            external_path_default().join(dirname, '__tests__', `${basename}_test.jsx`),
+            external_path_default().join(dirname, '__tests__', `${basename}.test.js`),
+            external_path_default().join(dirname, '__tests__', `${basename}.test.jsx`),
+        ];
+        for (const filename of filenames) {
+            if (external_fs_default().existsSync(filename)) {
+                return [filename];
+            }
+        }
+        return [];
+    });
+    core.info('matching tests: \n' + jsTestFiles.join('\n'));
+    const jestOpts = ['--coverage', ...jsTestFiles];
     try {
         await core.group('Running jest', async () => {
             await runJest(jestBin, jestOpts, { cwd: workingDirectory });

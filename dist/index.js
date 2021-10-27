@@ -68409,6 +68409,8 @@ const runJest = (jestBin, jestOpts, spawnOpts) => {
         });
     });
 };
+const LINE_ADDED = 'This line was added but has no test';
+const LINE_MODIFIED = 'This line was modified but has no test';
 async function run() {
     const jestBin = process.env['INPUT_JEST-BIN'];
     const workingDirectory = process.env['INPUT_CUSTOM-WORKING-DIRECTORY'] || '.';
@@ -68482,20 +68484,42 @@ async function run() {
         core.info(`uncovered lines for ${file}`);
         const lines = uncoveredLines[file];
         core.info(lines.join(', '));
-        // TODO: collapse adjacent lines
         lines.forEach((line) => {
-            if (changes.added.includes(line) ||
-                changes.modified.includes(line)) {
-                const message = changes.added.includes(line)
-                    ? 'This line was added but has no test'
-                    : 'This line was modified but has no test';
-                messages.push({
-                    path: external_path_default().relative(external_path_default().resolve('.'), file),
-                    startLine: line,
-                    endLine: line,
-                    annotationLevel,
-                    message,
-                });
+            if (changes.added.includes(line)) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage &&
+                    lastMessage.endLine === line - 1 &&
+                    lastMessage.message === LINE_ADDED) {
+                    lastMessage.endLine = line;
+                }
+                else {
+                    messages.push({
+                        path: external_path_default().relative(external_path_default().resolve('.'), file),
+                        startLine: line,
+                        endLine: line,
+                        annotationLevel,
+                        message: LINE_ADDED,
+                    });
+                }
+            }
+        });
+        lines.forEach((line) => {
+            if (changes.modified.includes(line)) {
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage &&
+                    lastMessage.endLine === line - 1 &&
+                    lastMessage.message) {
+                    lastMessage.endLine = line;
+                }
+                else {
+                    messages.push({
+                        path: external_path_default().relative(external_path_default().resolve('.'), file),
+                        startLine: line,
+                        endLine: line,
+                        annotationLevel,
+                        message: LINE_MODIFIED,
+                    });
+                }
             }
         });
     }

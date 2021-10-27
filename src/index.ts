@@ -173,6 +173,7 @@ async function run() {
         'warning') as 'warning' | 'failure';
 
     console.log('determing added/changed lines in implementation files');
+    core.info('jsImplFiles: ' + jsImplFiles.join(', '));
     for (const file of jsImplFiles) {
         const changes = getFileChanges(file, baseRef);
         core.info(`changes for ${file}`);

@@ -68508,7 +68508,7 @@ async function run() {
                 changes.modified.includes(line)) {
                 console.log(`reporting missing test for for line ${line}`);
                 messages.push({
-                    path: external_path_default().relative(current, file),
+                    path: external_path_default().relative(external_path_default().resolve('.'), file),
                     // TODO: reuse location data from the coverage report
                     start: { line, column: 1 },
                     end: { line, column: 1 },

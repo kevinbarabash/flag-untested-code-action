@@ -68469,6 +68469,11 @@ async function run() {
     core.info('changed files: \n' + jsFiles.join('\n'));
     const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
     const jsImplFiles = jsFiles.filter((file) => !nonImplRegex.test(file));
+    // Get file changes before we switch branches
+    const fileChanges = {};
+    for (const file of jsImplFiles) {
+        fileChanges[file] = getFileChanges(file, baseRef);
+    }
     const jsTestFiles = jsImplFiles.flatMap((file) => {
         const dirname = external_path_default().dirname(file);
         const basename = external_path_default().basename(file).replace(/\.jsx?$/, '');
@@ -68533,7 +68538,7 @@ async function run() {
     console.log('determing added/changed lines in implementation files');
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
     for (const file of jsImplFiles) {
-        const changes = getFileChanges(file, baseRef);
+        const changes = fileChanges[file];
         core.info(`changes for ${file}`);
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${file}`);

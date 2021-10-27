@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 
 import { spawn, execSync } from 'child_process';
 
-type FileChanges = {
+export type FileChanges = {
     added: number[];
     modified: number[];
 };

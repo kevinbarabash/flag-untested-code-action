@@ -24,6 +24,7 @@ import { compareReports } from './delta-report';
 
 import type { Message } from './utils/send-report';
 import type { CoverageReport } from './coverage-report';
+import type { FileChanges } from './file-changes';
 
 const execProm = promisify(exec);
 
@@ -94,6 +95,13 @@ async function run() {
     core.info('changed files: \n' + jsFiles.join('\n'));
     const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
     const jsImplFiles = jsFiles.filter((file) => !nonImplRegex.test(file));
+
+    // Get file changes before we switch branches
+    const fileChanges: Record<string, FileChanges> = {};
+    for (const file of jsImplFiles) {
+        fileChanges[file] = getFileChanges(file, baseRef);
+    }
+
     const jsTestFiles: string[] = jsImplFiles.flatMap((file) => {
         const dirname = path.dirname(file);
         const basename = path.basename(file).replace(/\.jsx?$/, '');
@@ -175,7 +183,7 @@ async function run() {
     console.log('determing added/changed lines in implementation files');
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
     for (const file of jsImplFiles) {
-        const changes = getFileChanges(file, baseRef);
+        const changes = fileChanges[file];
         core.info(`changes for ${file}`);
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${file}`);

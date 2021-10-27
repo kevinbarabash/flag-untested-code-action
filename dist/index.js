@@ -68370,6 +68370,34 @@ const getFileChanges = (filename, baseRef) => {
     return changes;
 };
 
+;// CONCATENATED MODULE: ./src/delta-report.ts
+const getCoveredStatmentCount = (statements) => {
+    return Object.values(statements).filter((count) => count > 0).length;
+};
+const compareReports = (baseReport, headReport) => {
+    const report = {};
+    for (const filename in baseReport) {
+        if (filename in headReport) {
+            const baseFileCoverage = baseReport[filename];
+            const headFileCoverage = headReport[filename];
+            const baseCoveredStatementCount = getCoveredStatmentCount(baseFileCoverage.s);
+            const baseStatementCount = Object.keys(baseFileCoverage.s).length;
+            const headCoveredStatementCount = getCoveredStatmentCount(headFileCoverage.s);
+            const headStatementCount = Object.keys(headFileCoverage.s).length;
+            const basePercent = baseCoveredStatementCount / baseStatementCount;
+            const headPercent = headCoveredStatementCount / headStatementCount;
+            const baseUncoveredStatementCount = baseStatementCount - baseCoveredStatementCount;
+            const headUncoveredStatementCount = headStatementCount - headCoveredStatementCount;
+            report[filename] = {
+                percent: headPercent - basePercent,
+                coveredStatements: headCoveredStatementCount - baseCoveredStatementCount,
+                uncoveredStatements: headUncoveredStatementCount - baseUncoveredStatementCount,
+            };
+        }
+    }
+    return report;
+};
+
 ;// CONCATENATED MODULE: ./src/index.ts
 /**
  * This action runs `jest` and reports any type errors it encounters.
@@ -68381,6 +68409,7 @@ const getFileChanges = (filename, baseRef) => {
  * stdout) and under Github Actions (adding annotations to files in the GitHub
  * UI).
  */
+
 
 
 
@@ -68494,10 +68523,9 @@ async function run() {
         process.exit(1);
     }
     const baseReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
-    console.log('baseReport');
-    console.log(JSON.stringify(baseReport, null, 4));
-    console.log('headReport');
-    console.log(JSON.stringify(headReport, null, 4));
+    const deltaReport = compareReports(baseReport, headReport);
+    console.log('deltaReport');
+    console.log(JSON.stringify(deltaReport, null, 4));
     const uncoveredLines = getUncoveredLines(headReport);
     const messages = [];
     const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||

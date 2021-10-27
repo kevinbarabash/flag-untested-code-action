@@ -68548,7 +68548,7 @@ async function run() {
                 }
             }
         });
-        messages.forEach(message => {
+        messages.forEach((message) => {
             if (message.endLine - message.startLine > 0) {
                 if (message.message === LINE_ADDED) {
                     message.message = LINES_ADDED;

@@ -12,7 +12,7 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn, exec } from 'child_process';
-import {promisify} from 'util';
+import { promisify } from 'util';
 import * as core from '@actions/core';
 
 import sendReport from './utils/send-report';
@@ -20,6 +20,7 @@ import gitChangedFiles from './utils/git-changed-files';
 import getBaseRef from './utils/get-base-ref';
 import { getUncoveredLines } from './coverage-report';
 import { getFileChanges } from './file-changes';
+import { compareReports } from './delta-report';
 
 import type { Message } from './utils/send-report';
 import type { CoverageReport } from './coverage-report';
@@ -147,7 +148,7 @@ async function run() {
     await execProm(`git checkout ${baseRef}`);
 
     try {
-        await core.group(`Running jest on ${baseRef}` , async () => {
+        await core.group(`Running jest on ${baseRef}`, async () => {
             await runJest(jestBin, jestOpts, { cwd: workingDirectory });
         });
     } catch (err) {
@@ -161,10 +162,10 @@ async function run() {
         fs.readFileSync(reportPath, 'utf-8'),
     );
 
-    console.log('baseReport');
-    console.log(JSON.stringify(baseReport, null, 4));
-    console.log('headReport');
-    console.log(JSON.stringify(headReport, null, 4));
+    const deltaReport = compareReports(baseReport, headReport);
+
+    console.log('deltaReport');
+    console.log(JSON.stringify(deltaReport, null, 4));
 
     const uncoveredLines = getUncoveredLines(headReport);
     const messages: Message[] = [];
@@ -222,7 +223,7 @@ async function run() {
             }
         });
 
-        messages.forEach(message => {
+        messages.forEach((message) => {
             if (message.endLine - message.startLine > 0) {
                 if (message.message === LINE_ADDED) {
                     message.message = LINES_ADDED;
@@ -230,7 +231,7 @@ async function run() {
                     message.message = LINES_MODIFIED;
                 }
             }
-        })
+        });
     }
 
     await sendReport(`Flag Untested Code`, messages);

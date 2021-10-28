@@ -5,6 +5,12 @@ runs:
   steps:
     - run: node ${{ github.action_path }}/dist/index.js
       shell: bash
+      with:
+        jest-bin: ${{ inputs.jest-bin }}
+        custom-working-directory: ${{ inputs.custom-working-directory }}
+        annotation-level: ${{ inputs.annotation-level }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
     - name: Create Comment
       uses: jungwinter/comment@v1
       id: create

@@ -68497,6 +68497,8 @@ const LINE_ADDED = 'This line was added but is untested.';
 const LINES_ADDED = 'These lines were added but are untested.';
 const LINE_MODIFIED = 'This line was modified but is untested.';
 const LINES_MODIFIED = 'These lines were modified but are untested.';
+const UNCHANGED_LINE_BECAME_UNTESTED = 'This unchanged line is no longer being tested.';
+const UNCHANGED_LINES_BECAME_UNTESTED = 'These unchanged lines are no longer being tested.';
 async function run() {
     const jestBin = process.env['INPUT_JEST-BIN'];
     const workingDirectory = process.env['INPUT_CUSTOM-WORKING-DIRECTORY'] || '.';
@@ -68590,7 +68592,8 @@ async function run() {
     const deltaReport = compareReports(baseReport, headReport);
     console.log('deltaReport');
     console.log(JSON.stringify(deltaReport, null, 4));
-    const uncoveredLines = getUncoveredLines(headReport);
+    const uncoveredHeadLines = getUncoveredLines(headReport);
+    const uncoveredBaseLines = getUncoveredLines(baseReport);
     const messages = [];
     const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||
         'warning');
@@ -68606,7 +68609,7 @@ async function run() {
         core.info(`changes for ${filename}`);
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${filename}`);
-        const lines = uncoveredLines[filename];
+        const lines = uncoveredHeadLines[filename];
         core.info(lines.join(', '));
         lines.forEach((line) => {
             if (changes.added.includes(line)) {
@@ -68646,6 +68649,26 @@ async function run() {
                 }
             }
         });
+        for (const [from, to] of changes.unchangedLineMappings) {
+            if (!uncoveredBaseLines[from] && uncoveredHeadLines[to]) {
+                const lastMessage = messages[messages.length - 1];
+                const line = to;
+                if (lastMessage &&
+                    lastMessage.endLine === line - 1 &&
+                    lastMessage.message) {
+                    lastMessage.endLine = line;
+                }
+                else {
+                    messages.push({
+                        path: external_path_default().relative(external_path_default().resolve('.'), filename),
+                        startLine: line,
+                        endLine: line,
+                        annotationLevel,
+                        message: UNCHANGED_LINE_BECAME_UNTESTED,
+                    });
+                }
+            }
+        }
         messages.forEach((message) => {
             if (message.endLine - message.startLine > 0) {
                 if (message.message === LINE_ADDED) {
@@ -68653,6 +68676,9 @@ async function run() {
                 }
                 else if (message.message === LINE_MODIFIED) {
                     message.message = LINES_MODIFIED;
+                }
+                else if (message.message === UNCHANGED_LINE_BECAME_UNTESTED) {
+                    message.message = UNCHANGED_LINES_BECAME_UNTESTED;
                 }
             }
         });

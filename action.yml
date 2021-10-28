@@ -4,14 +4,15 @@ runs:
   using: 'composite'
   steps:
     - run: dist/index.js
+      shell: bash
     - name: Create Comment
       uses: jungwinter/comment@v1
       id: create
       with:
-          type: create
-          body: "Hello, world"
-          issue_number: ${{ github.event.number }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+        type: create
+        body: "Hello, world"
+        issue_number: ${{ github.event.number }}
+        token: ${{ secrets.GITHUB_TOKEN }}
 inputs:
   jest-bin:
     required: true

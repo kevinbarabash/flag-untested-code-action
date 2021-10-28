@@ -68500,8 +68500,8 @@ const LINES_MODIFIED = 'These lines were modified but are untested.';
 const UNCHANGED_LINE_BECAME_UNTESTED = 'This unchanged line is no longer being tested.';
 const UNCHANGED_LINES_BECAME_UNTESTED = 'These unchanged lines are no longer being tested.';
 async function run() {
-    const jestBin = process.env['INPUT_JEST-BIN'];
-    const workingDirectory = process.env['INPUT_CUSTOM-WORKING-DIRECTORY'] || '.';
+    const jestBin = core.getInput('jest-bin');
+    const workingDirectory = core.getInput('custom-working-directory') || '.';
     if (!jestBin) {
         core.info(`You need to have jest installed, and pass in the the jest binary via the variable 'jest-bin'.`);
         process.exit(1);
@@ -68595,8 +68595,7 @@ async function run() {
     const uncoveredHeadLines = getUncoveredLines(headReport);
     const uncoveredBaseLines = getUncoveredLines(baseReport);
     const messages = [];
-    const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||
-        'warning');
+    const annotationLevel = (core.getInput('annotation-level') || 'warning');
     console.log('determing added/changed lines in implementation files');
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
     for (const filename of jsImplFiles) {

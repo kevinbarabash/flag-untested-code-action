@@ -64,9 +64,8 @@ const UNCHANGED_LINES_BECAME_UNTESTED =
     'These unchanged lines are no longer being tested.';
 
 async function run() {
-    const jestBin = process.env['INPUT_JEST-BIN'];
-    const workingDirectory =
-        process.env['INPUT_CUSTOM-WORKING-DIRECTORY'] || '.';
+    const jestBin = core.getInput('jest-bin');
+    const workingDirectory = core.getInput('custom-working-directory') || '.';
 
     if (!jestBin) {
         core.info(
@@ -191,8 +190,9 @@ async function run() {
     const uncoveredHeadLines = getUncoveredLines(headReport);
     const uncoveredBaseLines = getUncoveredLines(baseReport);
     const messages: Message[] = [];
-    const annotationLevel = (process.env['INPUT_ANNOTATION-LEVEL'] ||
-        'warning') as 'warning' | 'failure';
+    const annotationLevel = (core.getInput('annotation-level') || 'warning') as
+        | 'warning'
+        | 'failure';
 
     console.log('determing added/changed lines in implementation files');
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
@@ -251,8 +251,16 @@ async function run() {
             }
         });
 
-        core.info(`uncoveredBaseLines[${filename}] = ${uncoveredBaseLines[filename].join(', ')}`);
-        core.info(`uncoveredHeadLines[${filename}] = ${uncoveredHeadLines[filename].join(', ')}`);
+        core.info(
+            `uncoveredBaseLines[${filename}] = ${uncoveredBaseLines[
+                filename
+            ].join(', ')}`,
+        );
+        core.info(
+            `uncoveredHeadLines[${filename}] = ${uncoveredHeadLines[
+                filename
+            ].join(', ')}`,
+        );
 
         core.info(JSON.stringify(headReport, null, 4));
 

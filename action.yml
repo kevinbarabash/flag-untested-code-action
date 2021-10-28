@@ -1,8 +1,17 @@
 name: 'Flag Untested Code'
 description: "Flag lines that aren't covered by a corresponding jest test"
 runs:
-  using: 'node12'
-  main: 'dist/index.js'
+  using: 'composite'
+  steps:
+    - run: dist/index.js
+    - name: Create Comment
+      uses: jungwinter/comment@v1
+      id: create
+      with:
+          type: create
+          body: "Hello, world"
+          issue_number: ${{ github.event.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 inputs:
   jest-bin:
     required: true

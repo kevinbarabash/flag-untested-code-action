@@ -58,8 +58,10 @@ const LINE_ADDED = 'This line was added but is untested.';
 const LINES_ADDED = 'These lines were added but are untested.';
 const LINE_MODIFIED = 'This line was modified but is untested.';
 const LINES_MODIFIED = 'These lines were modified but are untested.';
-const UNCHANGED_LINE_BECAME_UNTESTED = 'This unchanged line is no longer being tested.';
-const UNCHANGED_LINES_BECAME_UNTESTED = 'These unchanged lines are no longer being tested.';
+const UNCHANGED_LINE_BECAME_UNTESTED =
+    'This unchanged line is no longer being tested.';
+const UNCHANGED_LINES_BECAME_UNTESTED =
+    'These unchanged lines are no longer being tested.';
 
 async function run() {
     const jestBin = process.env['INPUT_JEST-BIN'];
@@ -250,6 +252,8 @@ async function run() {
         });
 
         for (const [from, to] of changes.unchangedLineMappings) {
+            core.info(`
+            uncoveredBaseLines[${from}] = ${uncoveredBaseLines[from]}, uncoveredHeadLines[${to}] = ${uncoveredHeadLines[to]}`);
             if (!uncoveredBaseLines[from] && uncoveredHeadLines[to]) {
                 const lastMessage = messages[messages.length - 1];
                 const line = to;

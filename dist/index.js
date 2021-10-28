@@ -68650,6 +68650,8 @@ async function run() {
             }
         });
         for (const [from, to] of changes.unchangedLineMappings) {
+            core.info(`
+            uncoveredBaseLines[${from}] = ${uncoveredBaseLines[from]}, uncoveredHeadLines[${to}] = ${uncoveredHeadLines[to]}`);
             if (!uncoveredBaseLines[from] && uncoveredHeadLines[to]) {
                 const lastMessage = messages[messages.length - 1];
                 const line = to;

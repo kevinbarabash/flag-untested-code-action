@@ -60,6 +60,9 @@ const isFileIgnored = (workingDirectory: string, file: string) => {
         name = path.join(path.basename(dir), name);
         dir = path.dirname(dir);
     }
+    if (file === workingDirectory) {
+        return true;
+    }
     return false;
 };
 

@@ -68185,6 +68185,9 @@ const isFileIgnored = (workingDirectory, file) => {
         name = external_path_default().join(external_path_default().basename(dir), name);
         dir = external_path_default().dirname(dir);
     }
+    if (file === workingDirectory) {
+        return true;
+    }
     return false;
 };
 /**

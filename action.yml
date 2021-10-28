@@ -13,6 +13,9 @@ inputs:
   annotation-level:
     required: false
     description: "'warning' or 'failure', defaults to 'warning'"
+outputs:
+  report:
+    description: 'String containing report in Markdown.'
 branding:
   icon: check-circle
   color: red

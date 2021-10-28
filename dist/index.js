@@ -68688,6 +68688,17 @@ async function run() {
         });
     }
     await send_report(`Flag Untested Code`, messages, deltaReport);
+    const summaryLines = [
+        `## Coverage deltas`,
+        `|file|% change|lines covered|lines uncovered|`,
+        `|-|-|-|-|`,
+    ];
+    for (const [file, delta] of Object.entries(deltaReport)) {
+        const { percent, covered, uncovered } = delta;
+        const relFile = external_path_default().relative(external_path_default().resolve('.'), file);
+        summaryLines.push(`|${relFile}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`);
+    }
+    core.setOutput('report', summaryLines.join('\n'));
 }
 run().catch((err) => {
     console.error(err);

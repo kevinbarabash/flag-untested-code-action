@@ -1,24 +1,8 @@
 name: 'Flag Untested Code'
 description: "Flag lines that aren't covered by a corresponding jest test"
 runs:
-  using: 'composite'
-  steps:
-    - run: node ${{ github.action_path }}/dist/index.js
-      shell: bash
-      with:
-        jest-bin: ${{ inputs.jest-bin }}
-        custom-working-directory: ${{ inputs.custom-working-directory }}
-        annotation-level: ${{ inputs.annotation-level }}
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-    - name: Create Comment
-      uses: jungwinter/comment@v1
-      id: create
-      with:
-        type: create
-        body: "Hello, world"
-        issue_number: ${{ github.event.number }}
-        token: ${{ inputs.token }}
+  using: 'node12'
+  main: 'dist/index.js'
 inputs:
   jest-bin:
     required: true
@@ -29,9 +13,6 @@ inputs:
   annotation-level:
     required: false
     description: "'warning' or 'failure', defaults to 'warning'"
-  token:
-    required: true
-    description: 'Pass in secrets.GITHUB_TOKEN'
 branding:
   icon: check-circle
   color: red

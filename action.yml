@@ -3,7 +3,7 @@ description: "Flag lines that aren't covered by a corresponding jest test"
 runs:
   using: 'composite'
   steps:
-    - run: dist/index.js
+    - run: ${{ github.action_path }}/dist/index.js
       shell: bash
     - name: Create Comment
       uses: jungwinter/comment@v1

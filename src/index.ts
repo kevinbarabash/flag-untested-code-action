@@ -251,7 +251,11 @@ async function run() {
             }
         });
 
+        core.info(`uncoveredBaseLines[${filename}] = ${uncoveredBaseLines[filename].join(', ')}`);
+        core.info(`uncoveredHeadLines[${filename}] = ${uncoveredHeadLines[filename].join(', ')}`);
+
         for (const [from, to] of changes.unchangedLineMappings) {
+            core.info(`from = ${from}, to = ${to}`);
             if (
                 !uncoveredBaseLines[filename].includes(from) &&
                 uncoveredHeadLines[filename].includes(to)

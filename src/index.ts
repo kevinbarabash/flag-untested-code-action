@@ -11,7 +11,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { spawn, exec } from 'child_process';
+import { spawn, exec, execSync } from 'child_process';
 import { promisify } from 'util';
 import * as core from '@actions/core';
 
@@ -19,12 +19,11 @@ import sendReport from './utils/send-report';
 import gitChangedFiles from './utils/git-changed-files';
 import getBaseRef from './utils/get-base-ref';
 import { getUncoveredLines } from './coverage-report';
-import { getFileChanges } from './file-changes';
+import { computeFileChanges } from './analyze-file-diff';
 import { compareReports } from './delta-report';
 
 import type { Message } from './utils/send-report';
 import type { CoverageReport } from './coverage-report';
-import type { FileChanges } from './file-changes';
 
 const execProm = promisify(exec);
 
@@ -97,10 +96,20 @@ async function run() {
     const jsImplFiles = jsFiles.filter((file) => !nonImplRegex.test(file));
 
     // Get file changes before we switch branches
-    const fileChanges: Record<string, FileChanges> = {};
+    // const fileChanges: Record<string, FileChanges> = {};
+
+    // TODO: handle new files
+    const fileDiffs: Record<string, string> = {}; // filename -> diff
     for (const file of jsImplFiles) {
-        fileChanges[file] = getFileChanges(file, baseRef);
+        const diff = execSync(
+            `git difftool ${baseRef} -y -x "diff -C0" ${file}`,
+            { encoding: 'utf-8' },
+        );
+        fileDiffs[file] = diff;
     }
+    // for (const file of jsImplFiles) {
+    //     fileChanges[file] = getFileChanges(file, baseRef);
+    // }
 
     const jsTestFiles: string[] = jsImplFiles.flatMap((file) => {
         const dirname = path.dirname(file);
@@ -182,12 +191,17 @@ async function run() {
 
     console.log('determing added/changed lines in implementation files');
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
-    for (const file of jsImplFiles) {
-        const changes = fileChanges[file];
-        core.info(`changes for ${file}`);
+    for (const filename of jsImplFiles) {
+        // TODO: check if the file exists before trying to read it
+        const baseFileContents = fs.readFileSync(filename, {
+            encoding: 'utf-8',
+        });
+        const diff = fileDiffs[filename];
+        const changes = computeFileChanges(baseFileContents, diff);
+        core.info(`changes for ${filename}`);
         core.info(JSON.stringify(changes, null, 4));
-        core.info(`uncovered lines for ${file}`);
-        const lines: number[] = uncoveredLines[file];
+        core.info(`uncovered lines for ${filename}`);
+        const lines: number[] = uncoveredLines[filename];
         core.info(lines.join(', '));
 
         lines.forEach((line: number) => {
@@ -201,7 +215,7 @@ async function run() {
                     lastMessage.endLine = line;
                 } else {
                     messages.push({
-                        path: path.relative(path.resolve('.'), file),
+                        path: path.relative(path.resolve('.'), filename),
                         startLine: line,
                         endLine: line,
                         annotationLevel,
@@ -222,7 +236,7 @@ async function run() {
                     lastMessage.endLine = line;
                 } else {
                     messages.push({
-                        path: path.relative(path.resolve('.'), file),
+                        path: path.relative(path.resolve('.'), filename),
                         startLine: line,
                         endLine: line,
                         annotationLevel,

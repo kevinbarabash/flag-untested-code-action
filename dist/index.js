@@ -68346,37 +68346,79 @@ const getUncoveredLines = (report) => {
     return output;
 };
 
-;// CONCATENATED MODULE: ./src/file-changes.ts
-
-
-const getFileChanges = (filename, baseRef) => {
+;// CONCATENATED MODULE: ./src/analyze-file-diff.ts
+const parseSeparator = (separator, regex) => {
+    let match = separator.match(regex);
+    if (!match) {
+        throw new Error('invalid before separator');
+    }
+    const start = parseInt(match[1]);
+    const end = parseInt(match[3]) || start;
+    return { start, end };
+};
+const rangeLength = (range) => {
+    return range.end - range.start + 1;
+};
+const computeFileChanges = (base, // contents of the file in the base ref
+diff) => {
     const changes = {
         added: [],
         modified: [],
+        unchangedLineMappings: [],
     };
-    const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${filename}`, { encoding: 'utf-8' });
     // we skip the first section since that only contains the filename
-    const sections = diff.split('***************').slice(1);
+    const sections = diff
+        .split('***************\n')
+        .slice(1)
+        .map((section) => section.trim().split('\n'));
+    // NOTES:
+    // - line numbers start at 1
+    // - in between sections, there will be a constant offset to map
+    //   line numbers from base to head, initial this offset will be 0
+    // - sections can come in three flavors: deletions, modifications, and additions
+    let baseLine = 1;
+    let headLine = 1;
     const afterLineRegex = /^--- (\d+)(,(\d+))? ----$/;
+    const beforeLineRegex = /^\*\*\* (\d+)(,(\d+))? \*\*\*\*$/;
     for (const section of sections) {
-        core.info(`section = ${section}`);
-        const lines = section.split('\n');
-        const afterSeparatorIndex = lines.findIndex(line => afterLineRegex.test(line));
-        core.info(`afterSeparatorIndex = ${afterSeparatorIndex}`);
-        const separator = lines[afterSeparatorIndex];
-        core.info(`separator = ${separator}`);
-        const match = separator.match(afterLineRegex);
-        // @ts-expect-error: we know that this group exists
-        let index = match[1];
-        const afterLines = lines.slice(afterSeparatorIndex);
-        for (const line of afterLines) {
-            if (line.startsWith('+ ')) {
-                changes.added.push(index++);
-            }
-            if (line.startsWith('! ')) {
-                changes.modified.push(index++);
+        const beforeSeparator = section[0];
+        const afterSeparatorIndex = section.findIndex((line) => afterLineRegex.test(line));
+        const afterSeparator = section[afterSeparatorIndex];
+        const beforeRange = parseSeparator(beforeSeparator, beforeLineRegex);
+        const afterRange = parseSeparator(afterSeparator, afterLineRegex);
+        while (baseLine < beforeRange.start) {
+            changes.unchangedLineMappings.push([baseLine, headLine]);
+            baseLine++;
+            headLine++;
+        }
+        const beforeLines = section.slice(1, afterSeparatorIndex);
+        const afterLines = section.slice(afterSeparatorIndex + 1);
+        if (beforeLines.length === 0) {
+            // handle "add" section
+            headLine += rangeLength(afterRange);
+            for (let i = afterRange.start; i < afterRange.end + 1; i++) {
+                changes.added.push(i);
             }
         }
+        else if (afterLines.length === 0) {
+            // handle "delete" section
+            baseLine += rangeLength(beforeRange);
+        }
+        else {
+            // handle "modify" section
+            baseLine += rangeLength(beforeRange);
+            headLine += rangeLength(afterRange);
+            for (let i = afterRange.start; i < afterRange.end + 1; i++) {
+                changes.modified.push(i);
+            }
+        }
+    }
+    // handle any trailing lines that haven't changed
+    const baseLines = base.split('\n');
+    while (baseLine < baseLines.length) {
+        changes.unchangedLineMappings.push([baseLine, headLine]);
+        baseLine++;
+        headLine++;
     }
     return changes;
 };
@@ -68481,10 +68523,16 @@ async function run() {
     const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
     const jsImplFiles = jsFiles.filter((file) => !nonImplRegex.test(file));
     // Get file changes before we switch branches
-    const fileChanges = {};
+    // const fileChanges: Record<string, FileChanges> = {};
+    // TODO: handle new files
+    const fileDiffs = {}; // filename -> diff
     for (const file of jsImplFiles) {
-        fileChanges[file] = getFileChanges(file, baseRef);
+        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`, { encoding: 'utf-8' });
+        fileDiffs[file] = diff;
     }
+    // for (const file of jsImplFiles) {
+    //     fileChanges[file] = getFileChanges(file, baseRef);
+    // }
     const jsTestFiles = jsImplFiles.flatMap((file) => {
         const dirname = external_path_default().dirname(file);
         const basename = external_path_default().basename(file).replace(/\.jsx?$/, '');
@@ -68548,12 +68596,17 @@ async function run() {
         'warning');
     console.log('determing added/changed lines in implementation files');
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
-    for (const file of jsImplFiles) {
-        const changes = fileChanges[file];
-        core.info(`changes for ${file}`);
+    for (const filename of jsImplFiles) {
+        // TODO: check if the file exists before trying to read it
+        const baseFileContents = external_fs_default().readFileSync(filename, {
+            encoding: 'utf-8',
+        });
+        const diff = fileDiffs[filename];
+        const changes = computeFileChanges(baseFileContents, diff);
+        core.info(`changes for ${filename}`);
         core.info(JSON.stringify(changes, null, 4));
-        core.info(`uncovered lines for ${file}`);
-        const lines = uncoveredLines[file];
+        core.info(`uncovered lines for ${filename}`);
+        const lines = uncoveredLines[filename];
         core.info(lines.join(', '));
         lines.forEach((line) => {
             if (changes.added.includes(line)) {
@@ -68565,7 +68618,7 @@ async function run() {
                 }
                 else {
                     messages.push({
-                        path: external_path_default().relative(external_path_default().resolve('.'), file),
+                        path: external_path_default().relative(external_path_default().resolve('.'), filename),
                         startLine: line,
                         endLine: line,
                         annotationLevel,
@@ -68584,7 +68637,7 @@ async function run() {
                 }
                 else {
                     messages.push({
-                        path: external_path_default().relative(external_path_default().resolve('.'), file),
+                        path: external_path_default().relative(external_path_default().resolve('.'), filename),
                         startLine: line,
                         endLine: line,
                         annotationLevel,

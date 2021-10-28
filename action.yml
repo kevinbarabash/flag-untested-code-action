@@ -12,7 +12,7 @@ runs:
         type: create
         body: "Hello, world"
         issue_number: ${{ github.event.number }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ inputs.token }}
 inputs:
   jest-bin:
     required: true
@@ -23,6 +23,9 @@ inputs:
   annotation-level:
     required: false
     description: "'warning' or 'failure', defaults to 'warning'"
+  token:
+    required: true
+    description: 'Pass in secrets.GITHUB_TOKEN'
 branding:
   icon: check-circle
   color: red

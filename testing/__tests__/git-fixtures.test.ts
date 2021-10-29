@@ -34,12 +34,21 @@ describe('#createRepo', () => {
             const { deltaReport, summaryLines, messages } = await main(
                 jestBin,
                 workingDirectory,
+                workingDirectory,
                 'warning',
                 baseRef,
                 core,
             );
-            
-            // TODO: assert some things about deltaReport, summaryLines, messages
+
+            expect(deltaReport['vector.js']).toMatchInlineSnapshot(`
+                Object {
+                  "covered": 1,
+                  "percent": -0.1785714285714286,
+                  "uncovered": 2,
+                }
+            `);
+
+            // TODO: assert some things about summaryLines, messages
         } finally {
             // always cleanup the temp directory
             result.removeCallback();

@@ -52,6 +52,24 @@ const runJest = (
     });
 };
 
+const makePathsRelative = (
+    report: CoverageReport,
+    repoRoot: string,
+): CoverageReport => {
+    const newReport: CoverageReport = {};
+    for (const [filename, fileCoverage] of Object.entries(report)) {
+        const filepath = filename.startsWith('/private/var/')
+            ? filename.replace('/private/var/', '/var/')
+            : filename;
+        const relFilename = path.relative(repoRoot, filepath);
+        newReport[relFilename] = {
+            ...fileCoverage,
+            path: relFilename,
+        };
+    }
+    return newReport;
+};
+
 const LINE_ADDED = 'This line was added but is untested.';
 const LINES_ADDED = 'These lines were added but are untested.';
 const LINE_MODIFIED = 'This line was modified but is untested.';
@@ -64,6 +82,7 @@ const UNCHANGED_LINES_BECAME_UNTESTED =
 export const main = async (
     jestBin: string | null,
     workingDirectory: string,
+    repoRoot: string,
     annotationLevel: 'warning' | 'failure',
     baseRef: string | null,
     core: ICore,
@@ -80,8 +99,7 @@ export const main = async (
         process.exit(1);
     }
 
-    const current = path.resolve(workingDirectory);
-    const files = await gitChangedFiles(baseRef, workingDirectory);
+    const files = await gitChangedFiles(baseRef, workingDirectory, repoRoot);
 
     const validExt = ['.js', '.jsx', '.mjs', '.ts', '.tsx'];
     const jsFiles = files.filter((file) =>
@@ -159,10 +177,15 @@ export const main = async (
 
     core.info('Parsing json output from jest');
 
-    const reportPath = path.join(current, 'coverage/coverage-final.json');
-    const headReport: CoverageReport = JSON.parse(
-        fs.readFileSync(reportPath, 'utf-8'),
+    const reportPath = path.join(
+        workingDirectory,
+        'coverage/coverage-final.json',
     );
+    const headReport = makePathsRelative(
+        JSON.parse(fs.readFileSync(reportPath, 'utf-8')),
+        repoRoot,
+    );
+    console.log(headReport);
 
     await execProm(`git checkout ${baseRef}`, { cwd: workingDirectory });
 
@@ -177,8 +200,9 @@ export const main = async (
         process.exit(1);
     }
 
-    const baseReport: CoverageReport = JSON.parse(
-        fs.readFileSync(reportPath, 'utf-8'),
+    const baseReport = makePathsRelative(
+        JSON.parse(fs.readFileSync(reportPath, 'utf-8')),
+        repoRoot,
     );
 
     const deltaReport = compareReports(baseReport, headReport);
@@ -194,9 +218,12 @@ export const main = async (
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
     for (const filename of jsImplFiles) {
         // TODO: check if the file exists before trying to read it
-        const baseFileContents = fs.readFileSync(filename, {
-            encoding: 'utf-8',
-        });
+        const baseFileContents = fs.readFileSync(
+            path.join(repoRoot, filename),
+            {
+                encoding: 'utf-8',
+            },
+        );
         const diff = fileDiffs[filename];
         const changes = computeFileChanges(baseFileContents, diff);
         core.info(`changes for ${filename}`);

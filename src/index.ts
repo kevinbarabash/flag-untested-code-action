@@ -9,6 +9,7 @@
  * UI).
  */
 
+import path from 'path';
 import * as core from '@actions/core';
 
 import sendReport from './utils/send-report';
@@ -17,16 +18,20 @@ import { main } from './main';
 
 async function run() {
     const jestBin = core.getInput('jest-bin');
-    const workingDirectory = core.getInput('custom-working-directory') || '.';
+    const workingDirectory = path.resolve(
+        core.getInput('custom-working-directory') || '.',
+    );
+    const repoRoot = path.resolve('.');
     const annotationLevel = (core.getInput('annotation-level') || 'warning') as
         | 'warning'
         | 'failure';
 
     const baseRef = getBaseRef();
 
-    const {deltaReport, messages, summaryLines} = await main(
+    const { deltaReport, messages, summaryLines } = await main(
         jestBin,
         workingDirectory,
+        repoRoot,
         annotationLevel,
         baseRef,
         core,

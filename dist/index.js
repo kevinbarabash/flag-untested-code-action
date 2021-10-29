@@ -67935,6 +67935,9 @@ var __webpack_exports__ = {};
 // ESM COMPAT FLAG
 __nccwpck_require__.r(__webpack_exports__);
 
+// EXTERNAL MODULE: external "path"
+var external_path_ = __nccwpck_require__(5622);
+var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
@@ -67942,9 +67945,6 @@ var github = __nccwpck_require__(5438);
 // EXTERNAL MODULE: external "fs"
 var external_fs_ = __nccwpck_require__(5747);
 var external_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_fs_);
-// EXTERNAL MODULE: external "path"
-var external_path_ = __nccwpck_require__(5622);
-var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 // EXTERNAL MODULE: ./node_modules/chalk/source/index.js
 var source = __nccwpck_require__(8818);
 var source_default = /*#__PURE__*/__nccwpck_require__.n(source);
@@ -68239,7 +68239,7 @@ function isNotNull(arg) {
 const getIgnoredPatterns = (fileContents) => {
     return fileContents
         .split('\n')
-        .map(line => {
+        .map((line) => {
         if (line.startsWith('#')) {
             return null;
         }
@@ -68250,7 +68250,8 @@ const getIgnoredPatterns = (fileContents) => {
             return null;
         }
         const [pattern, ...attributes] = line.trim().split(' ');
-        if (attributes.includes('binary') || attributes.includes('linguist-generated=true')) {
+        if (attributes.includes('binary') ||
+            attributes.includes('linguist-generated=true')) {
             return pattern;
         }
         return null;
@@ -68294,7 +68295,7 @@ const isFileIgnored = (workingDirectory, file) => {
  * It also respects '.gitattributes', filtering out files that have been marked
  * as "binary" or "linguist-generated=true".
  */
-const gitChangedFiles = async (base, cwd) => {
+const gitChangedFiles = async (base, cwd, repoRoot) => {
     cwd = external_path_default().resolve(cwd);
     // Github actions jobs can run the following steps to get a fully accurate
     // changed files list. Otherwise, we fallback to a simple diff between the
@@ -68314,7 +68315,7 @@ const gitChangedFiles = async (base, cwd) => {
     //
     if (process.env.ALL_CHANGED_FILES) {
         const files = JSON.parse(process.env.ALL_CHANGED_FILES);
-        return files.filter(path => !isFileIgnored(cwd, path));
+        return files.filter((path) => !isFileIgnored(cwd, path));
     }
     const { stdout } = await execProm(`git diff --name-only ${base} --relative`, {
         cwd,
@@ -68326,7 +68327,8 @@ const gitChangedFiles = async (base, cwd) => {
         .map((name) => external_path_default().join(cwd, name))
         // Filter out paths that were deleted
         .filter((path) => external_fs_default().existsSync(path))
-        .filter((path) => !isFileIgnored(cwd, path)));
+        .filter((path) => !isFileIgnored(cwd, path))
+        .map((filename) => external_path_default().relative(repoRoot, filename)));
 };
 /* harmony default export */ const git_changed_files = (gitChangedFiles);
 
@@ -68493,13 +68495,27 @@ const runJest = (jestBin, jestOpts, spawnOpts, core) => {
         });
     });
 };
+const makePathsRelative = (report, repoRoot) => {
+    const newReport = {};
+    for (const [filename, fileCoverage] of Object.entries(report)) {
+        const filepath = filename.startsWith('/private/var/')
+            ? filename.replace('/private/var/', '/var/')
+            : filename;
+        const relFilename = external_path_default().relative(repoRoot, filepath);
+        newReport[relFilename] = {
+            ...fileCoverage,
+            path: relFilename,
+        };
+    }
+    return newReport;
+};
 const LINE_ADDED = 'This line was added but is untested.';
 const LINES_ADDED = 'These lines were added but are untested.';
 const LINE_MODIFIED = 'This line was modified but is untested.';
 const LINES_MODIFIED = 'These lines were modified but are untested.';
 const UNCHANGED_LINE_BECAME_UNTESTED = 'This unchanged line is no longer being tested.';
 const UNCHANGED_LINES_BECAME_UNTESTED = 'These unchanged lines are no longer being tested.';
-const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) => {
+const main = async (jestBin, workingDirectory, repoRoot, annotationLevel, baseRef, core) => {
     if (!jestBin) {
         core.info(`You need to have jest installed, and pass in the the jest binary via the variable 'jest-bin'.`);
         process.exit(1);
@@ -68508,8 +68524,7 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
         core.info(`No base ref given`);
         process.exit(1);
     }
-    const current = external_path_default().resolve(workingDirectory);
-    const files = await git_changed_files(baseRef, workingDirectory);
+    const files = await git_changed_files(baseRef, workingDirectory, repoRoot);
     const validExt = ['.js', '.jsx', '.mjs', '.ts', '.tsx'];
     const jsFiles = files.filter((file) => validExt.includes(external_path_default().extname(file)));
     if (!jsFiles.length) {
@@ -68569,8 +68584,9 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
         process.exit(1);
     }
     core.info('Parsing json output from jest');
-    const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
-    const headReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
+    const reportPath = external_path_default().join(workingDirectory, 'coverage/coverage-final.json');
+    const headReport = makePathsRelative(JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8')), repoRoot);
+    console.log(headReport);
     await main_execProm(`git checkout ${baseRef}`, { cwd: workingDirectory });
     try {
         await core.group(`Running jest on ${baseRef}`, async () => {
@@ -68583,7 +68599,7 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
         core.error(err);
         process.exit(1);
     }
-    const baseReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
+    const baseReport = makePathsRelative(JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8')), repoRoot);
     const deltaReport = compareReports(baseReport, headReport);
     console.log('deltaReport');
     console.log(JSON.stringify(deltaReport, null, 4));
@@ -68594,7 +68610,7 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
     for (const filename of jsImplFiles) {
         // TODO: check if the file exists before trying to read it
-        const baseFileContents = external_fs_default().readFileSync(filename, {
+        const baseFileContents = external_fs_default().readFileSync(external_path_default().join(repoRoot, filename), {
             encoding: 'utf-8',
         });
         const diff = fileDiffs[filename];
@@ -68714,12 +68730,14 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
 
 
 
+
 async function run() {
     const jestBin = core.getInput('jest-bin');
-    const workingDirectory = core.getInput('custom-working-directory') || '.';
+    const workingDirectory = external_path_default().resolve(core.getInput('custom-working-directory') || '.');
+    const repoRoot = external_path_default().resolve('.');
     const annotationLevel = (core.getInput('annotation-level') || 'warning');
     const baseRef = get_base_ref();
-    const { deltaReport, messages, summaryLines } = await main(jestBin, workingDirectory, annotationLevel, baseRef, core);
+    const { deltaReport, messages, summaryLines } = await main(jestBin, workingDirectory, repoRoot, annotationLevel, baseRef, core);
     await send_report(`Flag Untested Code`, messages, deltaReport);
     core.setOutput('report', summaryLines.join('\n'));
 }

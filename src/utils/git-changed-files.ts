@@ -1,20 +1,20 @@
 import path from 'path';
 import fs from 'fs';
 import minimatch from 'minimatch';
-import {exec} from 'child_process';
-import {promisify} from 'util';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 
 const execProm = promisify(exec);
 
-function isNotNull<T> (arg: T | null): arg is T {
-    return arg !== null
+function isNotNull<T>(arg: T | null): arg is T {
+    return arg !== null;
 }
-  
+
 // ok
 const getIgnoredPatterns = (fileContents: string): string[] => {
     return fileContents
         .split('\n')
-        .map(line => {
+        .map((line) => {
             if (line.startsWith('#')) {
                 return null;
             }
@@ -25,7 +25,10 @@ const getIgnoredPatterns = (fileContents: string): string[] => {
                 return null;
             }
             const [pattern, ...attributes] = line.trim().split(' ');
-            if (attributes.includes('binary') || attributes.includes('linguist-generated=true')) {
+            if (
+                attributes.includes('binary') ||
+                attributes.includes('linguist-generated=true')
+            ) {
                 return pattern;
             }
             return null;
@@ -72,7 +75,11 @@ const isFileIgnored = (workingDirectory: string, file: string) => {
  * It also respects '.gitattributes', filtering out files that have been marked
  * as "binary" or "linguist-generated=true".
  */
-const gitChangedFiles = async (base: string, cwd: string): Promise<string[]> => {
+const gitChangedFiles = async (
+    base: string,
+    cwd: string,
+    repoRoot: string,
+): Promise<string[]> => {
     cwd = path.resolve(cwd);
 
     // Github actions jobs can run the following steps to get a fully accurate
@@ -93,13 +100,16 @@ const gitChangedFiles = async (base: string, cwd: string): Promise<string[]> => 
     //
     if (process.env.ALL_CHANGED_FILES) {
         const files: string[] = JSON.parse(process.env.ALL_CHANGED_FILES);
-        return files.filter(path => !isFileIgnored(cwd, path));
+        return files.filter((path) => !isFileIgnored(cwd, path));
     }
 
-    const {stdout} = await execProm(`git diff --name-only ${base} --relative`, {
-        cwd,
-        encoding: 'utf8',
-    });
+    const { stdout } = await execProm(
+        `git diff --name-only ${base} --relative`,
+        {
+            cwd,
+            encoding: 'utf8',
+        },
+    );
     return (
         stdout
             .split('\n')
@@ -108,6 +118,7 @@ const gitChangedFiles = async (base: string, cwd: string): Promise<string[]> => 
             // Filter out paths that were deleted
             .filter((path: string) => fs.existsSync(path))
             .filter((path: string) => !isFileIgnored(cwd, path))
+            .map((filename: string) => path.relative(repoRoot, filename))
     );
 };
 

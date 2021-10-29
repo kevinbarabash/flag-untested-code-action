@@ -42,10 +42,13 @@ export const getUncoveredLines = (report: CoverageReport): Record<string, number
                     ? fileCoverage.path.replace('/private/var/', '/var/')
                     : fileCoverage.path;
 
+                // TODO: strip off the cwd from the filepath so that reports are
+                // easier to work with.
                 if (!(filepath in output)) {
                     output[filepath] = [];
                 }
                 // TODO: include all lines if there's a range
+                // TODO: add a test case for this where a statement is multiple lines
                 output[filepath].push(stmt.start.line);
             }
         }

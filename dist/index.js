@@ -68338,11 +68338,21 @@ const getUncoveredLines = (report) => {
         for (const [id, stmt] of Object.entries(fileCoverage.statementMap)) {
             // @ts-expect-error: TypeScript thinks `id` is `any` for some reason
             if (fileCoverage.s[id] === 0) {
-                if (!(fileCoverage.path in output)) {
-                    output[fileCoverage.path] = [];
+                // NOTE(kevinb): for some reason when running tests inside of a
+                // temp directory on MacOS jest prefixes the paths in the coverage
+                // report with `/private/`.  This code strips off the `/private/`
+                // prefix if it exists.
+                const filepath = fileCoverage.path.startsWith('/private/var/')
+                    ? fileCoverage.path.replace('/private/var/', '/var/')
+                    : fileCoverage.path;
+                // TODO: strip off the cwd from the filepath so that reports are
+                // easier to work with.
+                if (!(filepath in output)) {
+                    output[filepath] = [];
                 }
                 // TODO: include all lines if there's a range
-                output[fileCoverage.path].push(stmt.start.line);
+                // TODO: add a test case for this where a statement is multiple lines
+                output[filepath].push(stmt.start.line);
             }
         }
     }
@@ -68592,15 +68602,8 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
         core.info(`changes for ${filename}`);
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${filename}`);
-        const lines = uncoveredHeadLines[filename] ||
-            uncoveredHeadLines[external_path_default().join('/private', filename)];
-        if (lines) {
-            core.info(lines.join(', '));
-        }
-        else {
-            core.info(`no uncovered line data for ${filename}`);
-            console.log(Object.keys(headReport));
-        }
+        const lines = uncoveredHeadLines[filename];
+        console.log(lines.join('\n'));
         lines.forEach((line) => {
             if (changes.added.includes(line)) {
                 const lastMessage = messages[messages.length - 1];

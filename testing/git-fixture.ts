@@ -5,10 +5,6 @@ import fse from 'fs-extra';
 import rimraf from 'rimraf';
 import gitP, { SimpleGit } from 'simple-git/promise';
 
-import { main } from '../src/main';
-
-import type { ICore } from '../src/main';
-
 type File = {
     path: string;
     contents: string;
@@ -57,18 +53,4 @@ export const createRepo = async (
     await git.commit('head commit');
 
     return result;
-};
-
-export const runTest = async (baseRef: string, workingDirectory: string) => {
-    const jestBin = path.join(__dirname, '../node_modules/.bin/jest');
-
-    const core: ICore = {
-        error: (message, properties) => console.error(message),
-        info: (message) => console.info(message),
-        group: <T>(name: string, fn: () => Promise<T>): Promise<T> => {
-            return fn();
-        },
-    };
-
-    await main(jestBin, workingDirectory, 'warning', baseRef, core);
 };

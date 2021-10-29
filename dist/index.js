@@ -67935,20 +67935,16 @@ var __webpack_exports__ = {};
 // ESM COMPAT FLAG
 __nccwpck_require__.r(__webpack_exports__);
 
-// EXTERNAL MODULE: external "fs"
-var external_fs_ = __nccwpck_require__(5747);
-var external_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_fs_);
 // EXTERNAL MODULE: external "path"
 var external_path_ = __nccwpck_require__(5622);
 var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
-// EXTERNAL MODULE: external "child_process"
-var external_child_process_ = __nccwpck_require__(3129);
-// EXTERNAL MODULE: external "util"
-var external_util_ = __nccwpck_require__(1669);
 // EXTERNAL MODULE: ./node_modules/@actions/core/lib/core.js
 var core = __nccwpck_require__(2186);
 // EXTERNAL MODULE: ./node_modules/@actions/github/lib/github.js
 var github = __nccwpck_require__(5438);
+// EXTERNAL MODULE: external "fs"
+var external_fs_ = __nccwpck_require__(5747);
+var external_fs_default = /*#__PURE__*/__nccwpck_require__.n(external_fs_);
 // EXTERNAL MODULE: ./node_modules/chalk/source/index.js
 var source = __nccwpck_require__(8818);
 var source_default = /*#__PURE__*/__nccwpck_require__.n(source);
@@ -68124,111 +68120,6 @@ const makeReport = (title, messages, deltaReport) => {
 };
 /* harmony default export */ const send_report = (makeReport);
 
-// EXTERNAL MODULE: ./node_modules/minimatch/minimatch.js
-var minimatch = __nccwpck_require__(3973);
-var minimatch_default = /*#__PURE__*/__nccwpck_require__.n(minimatch);
-;// CONCATENATED MODULE: ./src/utils/git-changed-files.ts
-
-
-
-
-
-const execProm = (0,external_util_.promisify)(external_child_process_.exec);
-function isNotNull(arg) {
-    return arg !== null;
-}
-// ok
-const getIgnoredPatterns = (fileContents) => {
-    return fileContents
-        .split('\n')
-        .map(line => {
-        if (line.startsWith('#')) {
-            return null;
-        }
-        if (line.startsWith('"')) {
-            throw new Error('Quoted patterns not yet supported, sorry');
-        }
-        if (!line.trim()) {
-            return null;
-        }
-        const [pattern, ...attributes] = line.trim().split(' ');
-        if (attributes.includes('binary') || attributes.includes('linguist-generated=true')) {
-            return pattern;
-        }
-        return null;
-    })
-        .filter(isNotNull);
-};
-const ignoredPatternsByDirectory = {};
-const isFileIgnored = (workingDirectory, file) => {
-    // If it's outside of the "working directory", we ignore it
-    if (!file.startsWith(workingDirectory)) {
-        return true;
-    }
-    let dir = external_path_default().dirname(file);
-    let name = external_path_default().basename(file);
-    while (dir.startsWith(workingDirectory)) {
-        if (!ignoredPatternsByDirectory[dir]) {
-            const attributes = external_path_default().join(dir, '.gitattributes');
-            if (external_fs_default().existsSync(attributes)) {
-                ignoredPatternsByDirectory[dir] = getIgnoredPatterns(external_fs_default().readFileSync(attributes, 'utf8'));
-            }
-            else {
-                ignoredPatternsByDirectory[dir] = [];
-            }
-        }
-        for (const pattern of ignoredPatternsByDirectory[dir]) {
-            if (minimatch_default()(name, pattern)) {
-                return true;
-            }
-        }
-        name = external_path_default().join(external_path_default().basename(dir), name);
-        dir = external_path_default().dirname(dir);
-    }
-    return false;
-};
-/**
- * This lists the files that have changed when compared to `base` (a git ref),
- * limited to the files that are a descendent of `cwd`.
- * It also respects '.gitattributes', filtering out files that have been marked
- * as "binary" or "linguist-generated=true".
- */
-const gitChangedFiles = async (base, cwd) => {
-    cwd = external_path_default().resolve(cwd);
-    // Github actions jobs can run the following steps to get a fully accurate
-    // changed files list. Otherwise, we fallback to a simple diff between the
-    // current and base branch, which might give false positives if the base
-    // is ahead of the current branch.
-    //
-    //   - name: Get All Changed Files
-    //     uses: jaredly/get-changed-files@absolute
-    //     id: changed
-    //     with:
-    //       format: 'json'
-    //       absolute: true
-    //
-    //   - uses: allenevans/set-env@v2.0.0
-    //     with:
-    //       ALL_CHANGED_FILES: '${{ steps.changed.outputs.added_modified }}'
-    //
-    if (process.env.ALL_CHANGED_FILES) {
-        const files = JSON.parse(process.env.ALL_CHANGED_FILES);
-        return files.filter(path => !isFileIgnored(cwd, path));
-    }
-    const { stdout } = await execProm(`git diff --name-only ${base} --relative`, {
-        cwd,
-        encoding: 'utf8',
-    });
-    return (stdout
-        .split('\n')
-        .filter(isNotNull)
-        .map((name) => external_path_default().join(cwd, name))
-        // Filter out paths that were deleted
-        .filter((path) => external_fs_default().existsSync(path))
-        .filter((path) => !isFileIgnored(cwd, path)));
-};
-/* harmony default export */ const git_changed_files = (gitChangedFiles);
-
 ;// CONCATENATED MODULE: ./src/utils/get-base-ref.ts
 /**
  * This is used to determine what the "base" branch for the current work is.
@@ -68327,6 +68218,120 @@ const cannedGithubErrorMessage = () => {
 };
 /* harmony default export */ const get_base_ref = (getBaseRef);
 
+// EXTERNAL MODULE: external "child_process"
+var external_child_process_ = __nccwpck_require__(3129);
+// EXTERNAL MODULE: external "util"
+var external_util_ = __nccwpck_require__(1669);
+// EXTERNAL MODULE: ./node_modules/minimatch/minimatch.js
+var minimatch = __nccwpck_require__(3973);
+var minimatch_default = /*#__PURE__*/__nccwpck_require__.n(minimatch);
+;// CONCATENATED MODULE: ./src/utils/git-changed-files.ts
+
+
+
+
+
+const execProm = (0,external_util_.promisify)(external_child_process_.exec);
+function isNotNull(arg) {
+    return arg !== null;
+}
+// ok
+const getIgnoredPatterns = (fileContents) => {
+    return fileContents
+        .split('\n')
+        .map((line) => {
+        if (line.startsWith('#')) {
+            return null;
+        }
+        if (line.startsWith('"')) {
+            throw new Error('Quoted patterns not yet supported, sorry');
+        }
+        if (!line.trim()) {
+            return null;
+        }
+        const [pattern, ...attributes] = line.trim().split(' ');
+        if (attributes.includes('binary') ||
+            attributes.includes('linguist-generated=true')) {
+            return pattern;
+        }
+        return null;
+    })
+        .filter(isNotNull);
+};
+const ignoredPatternsByDirectory = {};
+const isFileIgnored = (workingDirectory, file) => {
+    // If it's outside of the "working directory", we ignore it
+    if (!file.startsWith(workingDirectory)) {
+        return true;
+    }
+    let dir = external_path_default().dirname(file);
+    let name = external_path_default().basename(file);
+    while (dir.startsWith(workingDirectory)) {
+        if (!ignoredPatternsByDirectory[dir]) {
+            const attributes = external_path_default().join(dir, '.gitattributes');
+            if (external_fs_default().existsSync(attributes)) {
+                ignoredPatternsByDirectory[dir] = getIgnoredPatterns(external_fs_default().readFileSync(attributes, 'utf8'));
+            }
+            else {
+                ignoredPatternsByDirectory[dir] = [];
+            }
+        }
+        for (const pattern of ignoredPatternsByDirectory[dir]) {
+            if (minimatch_default()(name, pattern)) {
+                return true;
+            }
+        }
+        name = external_path_default().join(external_path_default().basename(dir), name);
+        dir = external_path_default().dirname(dir);
+    }
+    if (file === workingDirectory) {
+        return true;
+    }
+    return false;
+};
+/**
+ * This lists the files that have changed when compared to `base` (a git ref),
+ * limited to the files that are a descendent of `cwd`.
+ * It also respects '.gitattributes', filtering out files that have been marked
+ * as "binary" or "linguist-generated=true".
+ */
+const gitChangedFiles = async (base, cwd, repoRoot) => {
+    cwd = external_path_default().resolve(cwd);
+    // Github actions jobs can run the following steps to get a fully accurate
+    // changed files list. Otherwise, we fallback to a simple diff between the
+    // current and base branch, which might give false positives if the base
+    // is ahead of the current branch.
+    //
+    //   - name: Get All Changed Files
+    //     uses: jaredly/get-changed-files@absolute
+    //     id: changed
+    //     with:
+    //       format: 'json'
+    //       absolute: true
+    //
+    //   - uses: allenevans/set-env@v2.0.0
+    //     with:
+    //       ALL_CHANGED_FILES: '${{ steps.changed.outputs.added_modified }}'
+    //
+    if (process.env.ALL_CHANGED_FILES) {
+        const files = JSON.parse(process.env.ALL_CHANGED_FILES);
+        return files.filter((path) => !isFileIgnored(cwd, path));
+    }
+    const { stdout } = await execProm(`git diff --name-only ${base} --relative`, {
+        cwd,
+        encoding: 'utf8',
+    });
+    return (stdout
+        .split('\n')
+        .filter(isNotNull)
+        .map((name) => external_path_default().join(cwd, name))
+        // Filter out paths that were deleted
+        .filter((path) => external_fs_default().existsSync(path))
+        .filter((path) => !isFileIgnored(cwd, path))
+        .map((filename) => external_path_default().relative(repoRoot, filename)));
+};
+/* harmony default export */ const git_changed_files = (gitChangedFiles);
+
 ;// CONCATENATED MODULE: ./src/coverage-report.ts
 const getUncoveredLines = (report) => {
     const output = {};
@@ -68335,11 +68340,21 @@ const getUncoveredLines = (report) => {
         for (const [id, stmt] of Object.entries(fileCoverage.statementMap)) {
             // @ts-expect-error: TypeScript thinks `id` is `any` for some reason
             if (fileCoverage.s[id] === 0) {
-                if (!(fileCoverage.path in output)) {
-                    output[fileCoverage.path] = [];
+                // NOTE(kevinb): for some reason when running tests inside of a
+                // temp directory on MacOS jest prefixes the paths in the coverage
+                // report with `/private/`.  This code strips off the `/private/`
+                // prefix if it exists.
+                const filepath = fileCoverage.path.startsWith('/private/var/')
+                    ? fileCoverage.path.replace('/private/var/', '/var/')
+                    : fileCoverage.path;
+                // TODO: strip off the cwd from the filepath so that reports are
+                // easier to work with.
+                if (!(filepath in output)) {
+                    output[filepath] = [];
                 }
                 // TODO: include all lines if there's a range
-                output[fileCoverage.path].push(stmt.start.line);
+                // TODO: add a test case for this where a statement is multiple lines
+                output[filepath].push(stmt.start.line);
             }
         }
     }
@@ -68451,17 +68466,7 @@ const compareReports = (baseReport, headReport) => {
     return report;
 };
 
-;// CONCATENATED MODULE: ./src/index.ts
-/**
- * This action runs `jest` and reports any type errors it encounters.
- *
- * It expects the path to the `jest` binary to be provided as the first
- * argument, and it runs `jest` in the current working directory.
- *
- * It uses `send-report.js` to support both running locally (reporting to
- * stdout) and under Github Actions (adding annotations to files in the GitHub
- * UI).
- */
+;// CONCATENATED MODULE: ./src/main.ts
 
 
 
@@ -68470,11 +68475,8 @@ const compareReports = (baseReport, headReport) => {
 
 
 
-
-
-
-const src_execProm = (0,external_util_.promisify)(external_child_process_.exec);
-const runJest = (jestBin, jestOpts, spawnOpts) => {
+const main_execProm = (0,external_util_.promisify)(external_child_process_.exec);
+const runJest = (jestBin, jestOpts, spawnOpts, core) => {
     return new Promise((resolve, reject) => {
         core.info(`running ${jestBin} ${jestOpts.join(' ')}`);
         const jest = (0,external_child_process_.spawn)(jestBin, jestOpts, spawnOpts);
@@ -68493,33 +68495,41 @@ const runJest = (jestBin, jestOpts, spawnOpts) => {
         });
     });
 };
+const makePathsRelative = (report, repoRoot) => {
+    const newReport = {};
+    for (const [filename, fileCoverage] of Object.entries(report)) {
+        const filepath = filename.startsWith('/private/var/')
+            ? filename.replace('/private/var/', '/var/')
+            : filename;
+        const relFilename = external_path_default().relative(repoRoot, filepath);
+        newReport[relFilename] = {
+            ...fileCoverage,
+            path: relFilename,
+        };
+    }
+    return newReport;
+};
 const LINE_ADDED = 'This line was added but is untested.';
 const LINES_ADDED = 'These lines were added but are untested.';
 const LINE_MODIFIED = 'This line was modified but is untested.';
 const LINES_MODIFIED = 'These lines were modified but are untested.';
 const UNCHANGED_LINE_BECAME_UNTESTED = 'This unchanged line is no longer being tested.';
 const UNCHANGED_LINES_BECAME_UNTESTED = 'These unchanged lines are no longer being tested.';
-async function run() {
-    const jestBin = core.getInput('jest-bin');
-    const workingDirectory = core.getInput('custom-working-directory') || '.';
+const main = async (jestBin, workingDirectory, repoRoot, annotationLevel, baseRef, core) => {
     if (!jestBin) {
         core.info(`You need to have jest installed, and pass in the the jest binary via the variable 'jest-bin'.`);
         process.exit(1);
-        return;
     }
-    const baseRef = get_base_ref();
     if (!baseRef) {
         core.info(`No base ref given`);
         process.exit(1);
-        return;
     }
-    const current = external_path_default().resolve(workingDirectory);
-    const files = await git_changed_files(baseRef, workingDirectory);
+    const files = await git_changed_files(baseRef, workingDirectory, repoRoot);
     const validExt = ['.js', '.jsx', '.mjs', '.ts', '.tsx'];
     const jsFiles = files.filter((file) => validExt.includes(external_path_default().extname(file)));
     if (!jsFiles.length) {
         core.info('No JavaScript files changed');
-        return;
+        process.exit(1);
     }
     core.info('changed files: \n' + jsFiles.join('\n'));
     const nonImplRegex = /(_test|\.test|\.fixture|\.stories)\.jsx?$/;
@@ -68529,7 +68539,7 @@ async function run() {
     // TODO: handle new files
     const fileDiffs = {}; // filename -> diff
     for (const file of jsImplFiles) {
-        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`, { encoding: 'utf-8' });
+        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`, { encoding: 'utf-8', cwd: workingDirectory });
         fileDiffs[file] = diff;
     }
     // for (const file of jsImplFiles) {
@@ -68564,7 +68574,7 @@ async function run() {
     const jestOpts = ['--coverage', ...jsTestFiles];
     try {
         await core.group('Running jest on HEAD', async () => {
-            await runJest(jestBin, jestOpts, { cwd: workingDirectory });
+            await runJest(jestBin, jestOpts, { cwd: workingDirectory }, core);
         });
     }
     catch (err) {
@@ -68574,12 +68584,13 @@ async function run() {
         process.exit(1);
     }
     core.info('Parsing json output from jest');
-    const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
-    const headReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
-    await src_execProm(`git checkout ${baseRef}`);
+    const reportPath = external_path_default().join(workingDirectory, 'coverage/coverage-final.json');
+    const headReport = makePathsRelative(JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8')), repoRoot);
+    console.log(headReport);
+    await main_execProm(`git checkout ${baseRef}`, { cwd: workingDirectory });
     try {
         await core.group(`Running jest on ${baseRef}`, async () => {
-            await runJest(jestBin, jestOpts, { cwd: workingDirectory });
+            await runJest(jestBin, jestOpts, { cwd: workingDirectory }, core);
         });
     }
     catch (err) {
@@ -68588,19 +68599,18 @@ async function run() {
         core.error(err);
         process.exit(1);
     }
-    const baseReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
+    const baseReport = makePathsRelative(JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8')), repoRoot);
     const deltaReport = compareReports(baseReport, headReport);
     console.log('deltaReport');
     console.log(JSON.stringify(deltaReport, null, 4));
     const uncoveredHeadLines = getUncoveredLines(headReport);
     const uncoveredBaseLines = getUncoveredLines(baseReport);
     const messages = [];
-    const annotationLevel = (core.getInput('annotation-level') || 'warning');
     console.log('determing added/changed lines in implementation files');
     core.info('jsImplFiles: ' + jsImplFiles.join(', '));
     for (const filename of jsImplFiles) {
         // TODO: check if the file exists before trying to read it
-        const baseFileContents = external_fs_default().readFileSync(filename, {
+        const baseFileContents = external_fs_default().readFileSync(external_path_default().join(repoRoot, filename), {
             encoding: 'utf-8',
         });
         const diff = fileDiffs[filename];
@@ -68609,7 +68619,7 @@ async function run() {
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${filename}`);
         const lines = uncoveredHeadLines[filename];
-        core.info(lines.join(', '));
+        console.log(lines.join('\n'));
         lines.forEach((line) => {
             if (changes.added.includes(line)) {
                 const lastMessage = messages[messages.length - 1];
@@ -68687,7 +68697,6 @@ async function run() {
             }
         });
     }
-    await send_report(`Flag Untested Code`, messages, deltaReport);
     const summaryLines = [
         `## Coverage deltas`,
         `|file|% change|lines covered|lines uncovered|`,
@@ -68703,6 +68712,33 @@ async function run() {
             summaryLines.push(`|${relFile}|${(percent * 100).toFixed(2)}|${covered}|${uncovered}|`);
         }
     }
+    return { deltaReport, messages, summaryLines };
+};
+
+;// CONCATENATED MODULE: ./src/index.ts
+/**
+ * This action runs `jest` and reports any type errors it encounters.
+ *
+ * It expects the path to the `jest` binary to be provided as the first
+ * argument, and it runs `jest` in the current working directory.
+ *
+ * It uses `send-report.js` to support both running locally (reporting to
+ * stdout) and under Github Actions (adding annotations to files in the GitHub
+ * UI).
+ */
+
+
+
+
+
+async function run() {
+    const jestBin = core.getInput('jest-bin');
+    const workingDirectory = external_path_default().resolve(core.getInput('custom-working-directory') || '.');
+    const repoRoot = external_path_default().resolve('.');
+    const annotationLevel = (core.getInput('annotation-level') || 'warning');
+    const baseRef = get_base_ref();
+    const { deltaReport, messages, summaryLines } = await main(jestBin, workingDirectory, repoRoot, annotationLevel, baseRef, core);
+    await send_report(`Flag Untested Code`, messages, deltaReport);
     core.setOutput('report', summaryLines.join('\n'));
 }
 run().catch((err) => {

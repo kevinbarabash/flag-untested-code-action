@@ -68514,7 +68514,7 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
     // TODO: handle new files
     const fileDiffs = {}; // filename -> diff
     for (const file of jsImplFiles) {
-        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`, { encoding: 'utf-8' });
+        const diff = (0,external_child_process_.execSync)(`git difftool ${baseRef} -y -x "diff -C0" ${file}`, { encoding: 'utf-8', cwd: workingDirectory });
         fileDiffs[file] = diff;
     }
     // for (const file of jsImplFiles) {
@@ -68561,7 +68561,7 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
     core.info('Parsing json output from jest');
     const reportPath = external_path_default().join(current, 'coverage/coverage-final.json');
     const headReport = JSON.parse(external_fs_default().readFileSync(reportPath, 'utf-8'));
-    await main_execProm(`git checkout ${baseRef}`);
+    await main_execProm(`git checkout ${baseRef}`, { cwd: workingDirectory });
     try {
         await core.group(`Running jest on ${baseRef}`, async () => {
             await runJest(jestBin, jestOpts, { cwd: workingDirectory }, core);
@@ -68592,8 +68592,15 @@ const main = async (jestBin, workingDirectory, annotationLevel, baseRef, core) =
         core.info(`changes for ${filename}`);
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${filename}`);
-        const lines = uncoveredHeadLines[filename];
-        core.info(lines.join(', '));
+        const lines = uncoveredHeadLines[filename] ||
+            uncoveredHeadLines[external_path_default().join('/private', filename)];
+        if (lines) {
+            core.info(lines.join(', '));
+        }
+        else {
+            core.info(`no uncovered line data for ${filename}`);
+            console.log(Object.keys(headReport));
+        }
         lines.forEach((line) => {
             if (changes.added.includes(line)) {
                 const lastMessage = messages[messages.length - 1];

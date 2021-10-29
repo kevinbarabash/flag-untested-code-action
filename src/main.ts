@@ -14,7 +14,7 @@ import type { CoverageReport } from './coverage-report';
 
 const execProm = promisify(exec);
 
-interface ICore {
+export interface ICore {
     error(
         message: string | Error,
         properties?: AnnotationProperties | undefined,
@@ -105,7 +105,7 @@ export const main = async (
     for (const file of jsImplFiles) {
         const diff = execSync(
             `git difftool ${baseRef} -y -x "diff -C0" ${file}`,
-            { encoding: 'utf-8' },
+            { encoding: 'utf-8', cwd: workingDirectory },
         );
         fileDiffs[file] = diff;
     }
@@ -164,7 +164,7 @@ export const main = async (
         fs.readFileSync(reportPath, 'utf-8'),
     );
 
-    await execProm(`git checkout ${baseRef}`);
+    await execProm(`git checkout ${baseRef}`, { cwd: workingDirectory });
 
     try {
         await core.group(`Running jest on ${baseRef}`, async () => {
@@ -203,7 +203,7 @@ export const main = async (
         core.info(JSON.stringify(changes, null, 4));
         core.info(`uncovered lines for ${filename}`);
         const lines: number[] = uncoveredHeadLines[filename];
-        core.info(lines.join(', '));
+        console.log(lines.join('\n'));
 
         lines.forEach((line: number) => {
             if (changes.added.includes(line)) {
@@ -320,5 +320,5 @@ export const main = async (
         }
     }
 
-    return {deltaReport, messages, summaryLines};
+    return { deltaReport, messages, summaryLines };
 };

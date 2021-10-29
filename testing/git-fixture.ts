@@ -4,9 +4,10 @@ import tmp from 'tmp';
 import fse from 'fs-extra';
 import rimraf from 'rimraf';
 import gitP, { SimpleGit } from 'simple-git/promise';
-import { execSync, spawnSync } from 'child_process';
 
-import gitChangedFiles from '../src/utils/git-changed-files';
+import { main } from '../src/main';
+
+import type { ICore } from '../src/main';
 
 type File = {
     path: string;
@@ -59,40 +60,15 @@ export const createRepo = async (
 };
 
 export const runTest = async (baseRef: string, workingDirectory: string) => {
-    const changedFiles = await gitChangedFiles('master', workingDirectory);
-    console.log(`changed files:\n${changedFiles.join('\n')}`);
+    const jestBin = path.join(__dirname, '../node_modules/.bin/jest');
 
-    // Using --name-only is insufficient to track renamed files.
-    // TODO: switch to using --name-status instead
-    // See https://git-scm.com/docs/git-status#_short_format
-    const rawChangedFiles = execSync(`git diff --name-only master --relative`, {
-        cwd: workingDirectory,
-        encoding: 'utf8',
-    });
-    console.log(`rawChangedFiles =\n${rawChangedFiles}`);
+    const core: ICore = {
+        error: (message, properties) => console.error(message),
+        info: (message) => console.info(message),
+        group: <T>(name: string, fn: () => Promise<T>): Promise<T> => {
+            return fn();
+        },
+    };
 
-    for (const file of changedFiles) {
-        const diff = execSync(
-            `git difftool ${baseRef} -y -x "diff -C0" ${file}`,
-            { encoding: 'utf-8', cwd: workingDirectory },
-        );
-        console.log(`diff of ${file} for master..my-branch`);
-        console.log(diff);
-    }
-
-    // TODO: refactor action so that we can pass in the jest-bin path ourselves
-    const jestPath = path.join(__dirname, '../node_modules/.bin/jest');
-    const jestResult = spawnSync(jestPath, ['--coverage'], {
-        encoding: 'utf-8',
-        cwd: workingDirectory,
-    });
-
-    const coverageReport = JSON.parse(
-        fs.readFileSync(
-            path.join(workingDirectory, 'coverage', 'coverage-final.json'),
-            { encoding: 'utf-8' },
-        ),
-    );
-
-    console.log(coverageReport);
+    await main(jestBin, workingDirectory, 'warning', baseRef, core);
 };

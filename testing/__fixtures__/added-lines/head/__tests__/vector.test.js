@@ -13,6 +13,6 @@ describe("#length", () => {
 describe("#toString()", () => {
     it("should return the correct string", () => {
         const vector = new Vector(3, 4);
-        expect(`${vector}`).toEqual("(3,4)");
+        expect(`${vector}`).toEqual("(3, 4)");
     });
 });

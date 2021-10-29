@@ -10,9 +10,13 @@ describe('#createRepo', () => {
         const result = await createRepo(baseDir, headDir);
         const baseRef = 'master';
         const workingDirectory = result.name;
-        await runTest(baseRef, workingDirectory);
 
-        result.removeCallback();
+        try {
+            await runTest(baseRef, workingDirectory);
+        } finally {
+            // always cleanup the temp directory
+            result.removeCallback();
+        }
     });
 
     it.skip('renamed files with no content changes', async () => {
